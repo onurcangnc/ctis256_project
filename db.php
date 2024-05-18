@@ -1,8 +1,8 @@
 <?php
 
-$dsn = "mysql:host=localhost;port=3306;dbname=test;charset=utf8mb4";
+$dsn = "mysql:host=db;port=3306;dbname=test;charset=utf8mb4";
 $user = "root";
-$pass = "";
+$pass = "root";
 $dbname = 'test';
 
 try {
