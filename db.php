@@ -1,4 +1,5 @@
 <?php
+session_start();
 
 $dsn = "mysql:host=db;port=3306;dbname=test;charset=utf8mb4";
 $user = "root";
