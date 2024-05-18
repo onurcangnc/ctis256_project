@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
-    libonig-dev \  # Add libonig-dev package
+    libonig-dev \
     unzip
 
 # PHP uzantılarını yapılandıralım ve yükleyelim
