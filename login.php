@@ -10,9 +10,10 @@
 </head>
 
 <?php
+session_start();
 unset($_SESSION['verification_code']);
 unset($_SESSION['verification_sent']);
-session_start();
+
 // aksi takdirde kullanıcı her login.php sayfasını yenilediğinde yeni bir CSRF token oluşturulmaz ve mail gelmez.
 
 require 'db.php';

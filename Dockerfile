@@ -1,39 +1,29 @@
-# Base image olarak PHP ve Apache kullanalım
-FROM php:8.1-apache
+version: "3.8"
 
-# Gerekli PHP uzantılarını yükleyelim
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./users.sql:/docker-entrypoint-initdb.d/users.sql
+      - ./product.sql:/docker-entrypoint-initdb.d/product.sql
 
-# PHP uzantılarını yapılandıralım ve yükleyelim
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd \
-    && docker-php-ext-install pdo_mysql \
-    && docker-php-ext-install mysqli \
-    && docker-php-ext-enable mysqli \
-    && docker-php-ext-install zip
+  web:
+    build: .
+    container_name: php_web_app
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
 
-# Composer'ı global olarak yükleyelim
-RUN curl -sS https://getcomposer.org/installer -o composer-setup.php \
-    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && rm composer-setup.php
-
-# Uygulama dosyalarını Apache web dizinine kopyalayalım
-COPY . /var/www/html/
-
-# Çalışma dizinini belirleyelim
-WORKDIR /var/www/html
-
-# Composer bağımlılıklarını yükleyelim
-RUN COMPOSER_ALLOW_SUPERUSER=1 composer install
-
-# Apache portunu açalım
-EXPOSE 80
-
-# Apache'yi başlatalım
-CMD ["apache2-foreground"]
+volumes:
+  db_data:
 
