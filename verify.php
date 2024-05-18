@@ -45,10 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verification_code'])) 
             unset($_SESSION['verification_code']);
             if ($_SESSION['is_admin'] == 1) {
                 header("Location: addproduct.php");
+                exit();
             } else {
                 header("Location: product.php");
+                exit();
             }
-            exit();
         } else {
             $verification_message = "Invalid verification code.";
         }
