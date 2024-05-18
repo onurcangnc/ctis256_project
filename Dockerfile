@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libfreetype6-dev \
     libzip-dev \
+    libonig-dev \  # Add libonig-dev package
     unzip
 
 # PHP uzantılarını yapılandıralım ve yükleyelim
@@ -19,8 +20,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 
 # Composer'ı global olarak yükleyelim
 RUN curl -sS https://getcomposer.org/installer -o composer-setup.php \
-    && php composer-setup.php --install-dir=/usr/local/bin 
---filename=composer \
+    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
     && rm composer-setup.php
 
 # Apache ServerName direktifini ekleyelim
