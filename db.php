@@ -1,15 +1,17 @@
 <?php
 
-$dsn = "mysql:host=db;port=3306;dbname=test;charset=utf8mb4";
-$user = "root";
-$pass = "root";
-$dbname = 'test';
+$host = getenv('DB_HOST') ?: 'db';
+$port = getenv('DB_PORT') ?: '3306';
+$dbname = getenv('DB_DATABASE') ?: 'test';
+$user = getenv('DB_USERNAME') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: 'root';
+
+$dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
 
 try {
     $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-
+    echo "DB Connection Successful";
 } catch (PDOException $ex) {
     echo "DB Connection Error: " . $ex->getMessage();
 }

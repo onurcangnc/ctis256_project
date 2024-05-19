@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Disable conflicting MPM modules
 RUN a2dismod mpm_prefork mpm_worker mpm_event
 
-# Enable the desired MPM module
-RUN a2enmod mpm_prefork
+# Enable the desired MPM module and mod_rewrite
+RUN a2enmod mpm_prefork rewrite
 
 # Install Composer globally
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -28,6 +28,9 @@ RUN echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 
 # Copy application files to the web directory
 COPY . /var/www/html/
+
+# Ensure .htaccess is included
+COPY .htaccess /var/www/html/
 
 # Set the working directory
 WORKDIR /var/www/html
