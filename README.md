@@ -15,8 +15,6 @@
 
 **Submission:** All project source codes, assets, and database exports should be uploaded to Moodle by one team member by the deadline (19th of May).
 
-**Website:** [ctis256project.com.tr](http://ctis256project.com.tr)
-
 ---
 
 ## Project Requirements
