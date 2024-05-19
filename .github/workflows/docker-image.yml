@@ -4,26 +4,33 @@ on:
   push:
     branches:
       - main
-    tags: ['v*']
-  pull_request: {}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Step 2: Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      # Step 3: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # Step 4: Build and push the Docker image
       - name: Build and push web service
         id: build-web
         uses: docker/build-push-action@v2
@@ -34,196 +41,45 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
 
+      # Step 5: Verify the Docker image locally
       - name: Verify web service image locally
         run: |
           echo "Verifying the web service image locally..."
           docker images ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
 
+      # Step 6: Verify the Docker image on Docker Hub
       - name: Verify web service image on Docker Hub
         run: |
           echo "Verifying the web service image on Docker Hub..."
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
           docker images ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git golang-go make
-
+      # Step 7: Install Deno
       - name: Install Deno
         run: |
-          curl -fsSL https://deno.land/x/install/install.sh | sh
-          echo "DENO_INSTALL=$HOME/.deno" >> $GITHUB_ENV
-          echo "PATH=$HOME/.deno/bin:\$PATH" >> $GITHUB_ENV
-        shell: bash
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "export DENO_INSTALL=\"$HOME/.deno\"" >> $GITHUB_ENV
+          echo "export PATH=\"$HOME/.deno/bin:\$PATH\"" >> $GITHUB_ENV
 
-      - name: Clone Render CLI repository and install dependencies
-        env:
-          DENO_INSTALL: /home/runner/.deno
-          PATH: /home/runner/.deno/bin:$PATH
+      # Step 8: Install Git (ensure git is available)
+      - name: Install Git
+        run: sudo apt-get install -y git
+
+      # Step 9: Clone the Render CLI repository and install dependencies
+      - name: Clone Render CLI repository
         run: |
-          source $GITHUB_ENV
+          source $GITHUB_ENV  # Load Deno environment variables
           git clone https://github.com/render-oss/render-cli.git
           cd render-cli
           make deps
 
-      - name: Install Render CLI
-        run: |
-          curl -fsSL https://github.com/render-oss/render-cli/releases/latest/download/render-cli-linux-amd64 -o /usr/local/bin/render
-          chmod +x /usr/local/bin/render
-
+      # Step 10: Initialize Render CLI configuration
       - name: Initialize Render CLI Configuration
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           mkdir -p ~/.config/render
           echo "{\"apiKey\": \"$RENDER_API_KEY\"}" > ~/.config/render/config.json
 
+      # Step 11: Deploy to Render
       - name: Deploy to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
-          render services deploy ctis256_project --env production --dockerfile ./Dockerfile
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-
-      - name: Check out code (full depth for tags)
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Caching dependencies
-        run: make deps
-
-      - name: Outputting version
-        run: ./_build/write-version.bash gha > version.ts
-
-      - name: Running tests
-        run: make test
-
-      - name: Compiling executable for x86_64-unknown-linux-gnu
-        run: make build-linux-x86_64
-
-      - name: Compiling executable for x86_64-apple-darwin
-        run: make build-macos-x86_64
-
-      - name: Compiling executable for aarch64-apple-darwin
-        run: make build-macos-aarch64
-
-      - name: Compiling executable for x86_64-pc-windows-msvc
-        run: make build-windows-x86_64
-
-      - name: Setting chmod
-        run: chmod +x /tmp/render-*
-
-      - name: Test-running Linux artifact just to be sure...
-        run: /tmp/render-linux-x86_64 version
-
-      - name: Uploading artifacts (all)
-        uses: actions/upload-artifact@v2
-        with:
-          name: render-binaries
-          path: /tmp/render-*
-
-  make-nupkg:
-    runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Create temp directories
-        run: mkdir -p ./tmp/artifacts ./tmp/nupkg
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: render-binaries
-          path: ./tmp/artifacts
-
-      - name: Prep executable
-        run: cp ./tmp/artifacts/render-windows-x86_64.exe ./tmp/nupkg/render.exe
-
-      - name: Copy tools to nupkg
-        run: cp -r ./_build/nupkg/tools ./tmp/nupkg/tools
-
-      - name: Output templated nuspec
-        run: |
-          cat ./_build/nupkg/rendercli.nuspec.template | sed "s/NUSPEC_PACKAGE_VERSION/${GITHUB_REF/refs\/tags\/v/}/g" > ./tmp/nupkg/rendercli.nuspec
-
-      - name: Show templated nuspec
-        run: cat ./tmp/nupkg/rendercli.nuspec
-
-      - name: Enumerating nupkg files
-        run: find ./tmp/nupkg
-
-      - name: Pack nupkg
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: pack ./tmp/nupkg/rendercli.nuspec
-
-      - name: Check for nupkg
-        run: ls . && find ./tmp
-
-      - name: Uploading nupkg
-        uses: actions/upload-artifact@v2
-        with:
-          name: nupkg
-          path: ./rendercli.*.nupkg
-
-  make-release:
-    runs-on: ubuntu-latest
-    needs: [build, make-nupkg]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - run: mkdir -p /tmp/artifacts /tmp/nupkg
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: render-binaries
-          path: /tmp/artifacts
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: nupkg
-          path: /tmp/nupkg
-
-      - name: Do GitHub release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: true
-          files: |
-            /tmp/artifacts/*
-            /tmp/nupkg/*
-            LICENSE
-            README.md
-
-  push-nupkg:
-    runs-on: ubuntu-latest
-    needs: make-release
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: nupkg
-          path: ./tmp/nupkg
-
-      - name: Rename nupkg for action
-        run: cp ./tmp/nupkg/rendercli.${GITHUB_REF/refs\/tags\/v/}.nupkg ./tmp/nupkg/rendercli.nupkg
-
-      - name: Push nupkg to Chocolatey
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: push --key ${{ secrets.CHOCOLATEY_APIKEY }} --source https://push.chocolatey.org ./tmp/nupkg/rendercli.nupkg
-
-permissions:
-  contents: write
+          ~/.deno/bin/deno run --allow-read --allow-env --allow-run --allow-net https://deno.land/x/render-cli@latest/cli.ts services deploy ctis256_project --env production --dockerfile ./Dockerfile
