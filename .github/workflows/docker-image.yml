@@ -85,4 +85,4 @@ jobs:
         run: |
           source $GITHUB_ENV
           cd render-cli
-          deno task run deploy --service-name ctis256_project
+          deno task run blueprint apply --file ../render.yaml
