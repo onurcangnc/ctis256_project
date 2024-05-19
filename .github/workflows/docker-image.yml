@@ -72,11 +72,17 @@ jobs:
           source $GITHUB_ENV
           make deps
 
+      - name: Initialize Render CLI Configuration
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          source $GITHUB_ENV
+          echo "$RENDER_API_KEY" | deno task run config init --api-key
+
       - name: Deploy to Render
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           source $GITHUB_ENV
           cd render-cli
-          deno task run login --api-key $RENDER_API_KEY
-          deno task run deploy --service-name ctis256_project
+          deno task run deploy --service-name <your_actual_render_service_name>
