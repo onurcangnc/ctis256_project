@@ -1,21 +1,22 @@
 <?php
 
-$host = getenv('DB_HOST');
-$db = getenv('DB_DATABASE');
-$user = getenv('DB_USERNAME');
-$pass = getenv('DB_PASSWORD');
-$charset = 'utf8mb4';
+$host = getenv('DB_HOST') ?: 'db';
+$port = getenv('DB_PORT') ?: '3306';
+$dbname = getenv('DB_DATABASE') ?: 'test';
+$user = getenv('DB_USERNAME') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: 'root';
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
+echo "Host: $host<br>";
+echo "Port: $port<br>";
+echo "Database: $dbname<br>";
+echo "User: $user<br>";
+
+$dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
+    $pdo = new PDO($dsn, $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "DB Connection Successful";
+} catch (PDOException $ex) {
+    echo "DB Connection Error: " . $ex->getMessage();
 }
-
