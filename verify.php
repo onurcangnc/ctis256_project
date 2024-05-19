@@ -22,8 +22,6 @@ function sendVerificationCode($email) {
     $random_integer = mt_rand(100000, 999999);
     $_SESSION['verification_code'] = (string)$random_integer;
     Mail::send($email, 'Email Verification Code', $random_integer, 'User Verification');
-    echo "Verification code sent to: " . $email . "<br>"; // Debugging statement
-    echo "Verification code: " . $random_integer . "<br>"; // Debugging statement
 }
 
 // Eğer verification_code oturum değişkeni yoksa yeni bir doğrulama kodu gönder

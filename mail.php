@@ -28,9 +28,7 @@ class Mail {
             $mail->Body    = $message;
 
             $mail->send();
-            echo 'Message has been sent to ' . $to . "<br>";
         } catch (Exception $e) {
-            echo "<p>Message could not be sent. Mailer Error: {$mail->ErrorInfo}</p>";
         }
     }
 }
