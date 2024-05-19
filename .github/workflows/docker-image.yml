@@ -54,7 +54,7 @@ jobs:
 
       - name: Install Render CLI
         run: |
-          curl -fsSL https://render.com/download/render-cli | bash
+          curl -fsSL https://render.com/install | bash
           echo "PATH=$HOME/.render:\$PATH" >> $GITHUB_ENV
         shell: bash
 
