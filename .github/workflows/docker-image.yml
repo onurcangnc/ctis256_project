@@ -54,13 +54,12 @@ jobs:
 
       - name: Install Render CLI
         run: |
-          curl -fsSL https://render.com/install | bash
-          echo 'export PATH=$HOME/.render:$PATH' >> $HOME/.bashrc
-          source $HOME/.bashrc
+          curl -fsSL https://render.com/download/render-cli | bash
+          echo 'export PATH=$HOME/.render:$PATH' >> $GITHUB_ENV
 
       - name: Deploy to Render
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
-          $HOME/.render/render login --api-key $RENDER_API_KEY
-          $HOME/.render/render deploy --service-name your_render_service_name
+          render login --api-key $RENDER_API_KEY
+          render deploy --service-name your_render_service_name
