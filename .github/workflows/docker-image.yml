@@ -61,6 +61,7 @@ jobs:
         run: |
           git clone https://github.com/render-oss/render-cli
           cd render-cli
+          go mod init github.com/render-oss/render-cli
           go build -o render
 
       - name: Move Render CLI to /usr/local/bin
