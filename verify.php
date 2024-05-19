@@ -1,10 +1,11 @@
 <?php
+ob_start();
 session_unset(); // Tüm oturum değişkenlerini sil
 session_start(); // Yeni oturum başlat
 
 
 require 'vendor/autoload.php';
-require 'Mail.php';
+require 'mail.php';
 require 'csrf.php';
 
 if (!isset($_SESSION['user_email'])) {
@@ -68,6 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['resend_code'])) {
         $verification_message = "Invalid CSRF token.";
     }
 }
+ob_end_flush();
 ?>
 
 <!DOCTYPE html>
