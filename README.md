@@ -74,7 +74,7 @@
 
 ### 🚀 Usage
 1. **Register:** Users can register as either a Market or Consumer.
-2. **Login:** Users & Market can log in using their email and password.
+2. **Login:** Users & Market can login using their email and password.
 3. **Market User:**
    - Add products nearing their expiration date.
    - Edit and delete products.
@@ -100,12 +100,11 @@
 - Upload all project source codes, assets, and database exports to Moodle by 19th of May, 23:59.
 
 ### 🛠️ Technologies Used
-- **Hosting:** ![Infinityfree](https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Infinity_Free_Logo.png 600px-Infinity_Free_Logo.png)
-- **Domain:** ![Metunic](https://www.metunic.com/img/metunic-logo-dark.svg)
-- **Backend:** ![PHP](https://upload.wikimedia.org/wikipedia/commons/2/27/PHP-logo.svg), ![PHP Composer](https://upload.wikimedia.org/wikipedia/commons/1/1c/Composer-logo.svg)
-- **Email Services:** ![SMTP](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/SMTP_logo.svg/1200px-SMTP_logo.svg.png)
-- **Frontend:** ![Bootstrap](https://upload.wikimedia.org/wikipedia/commons/b/b2/Bootstrap_logo.svg)
-
+- **Hosting:** Infinityfree
+- **Domain:** Metunic
+- **Backend:** PHP, PHP Composer
+- **Email Services:** SMTP
+- **Frontend:** Bootstrap
 
 ---
 
