@@ -1,7 +1,0 @@
-services:
-  - name: ctis256_project
-    type: web
-    env: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    autoDeploy: true

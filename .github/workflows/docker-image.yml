@@ -28,29 +28,20 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/php-web-app:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
         env:
           DOCKER_BUILDKIT: 1
 
       - name: Verify web service image locally
         run: |
           echo "Verifying the web service image locally..."
-          docker images ${{ secrets.DOCKER_HUB_USERNAME }}/php-web-app:latest
+          docker images ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
 
       - name: Verify web service image on Docker Hub
         run: |
           echo "Verifying the web service image on Docker Hub..."
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/php-web-app:latest
-          docker images ${{ secrets.DOCKER_HUB_USERNAME }}/php-web-app:latest
-
-      - name: Build and push MySQL service
-        run: |
-          docker pull mysql:8.0
-          docker tag mysql:8.0 ${{ secrets.DOCKER_HUB_USERNAME }}/mysql:8.0
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/mysql:8.0
-
-      - name: Verify MySQL service image locally
-        run: docker images ${{ secrets.DOCKER_HUB_USERNAME }}/mysql:8.0
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
+          docker images ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
 
       - name: Install dependencies
         run: |
@@ -84,5 +75,4 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           source $GITHUB_ENV
-          cd render-cli
-          deno task run blueprint apply --file ../render.yaml
+          render services deploy ctis256_project --env production --dockerfile ./Dockerfile
