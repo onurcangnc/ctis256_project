@@ -1,6 +1,6 @@
 <?php
 
-$host = getenv('DB_HOST') ?: 'db';
+$host = getenv('DB_HOST') ?: 'localhost';
 $port = getenv('DB_PORT') ?: '3306';
 $dbname = getenv('DB_DATABASE') ?: 'test';
 $user = getenv('DB_USERNAME') ?: 'root';
