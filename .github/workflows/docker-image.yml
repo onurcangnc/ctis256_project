@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags: ['v*']
-  pull_request: {}
 
 jobs:
   build-and-deploy:
@@ -50,25 +48,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git golang-go make
           curl -fsSL https://deno.land/x/install/install.sh | sh
+          echo "export DENO_INSTALL=\"$HOME/.deno\"" >> $GITHUB_ENV
+          echo "export PATH=\"$HOME/.deno/bin:\$PATH\"" >> $GITHUB_ENV
 
       - name: Set up Deno environment
         run: |
-          echo "export DENO_INSTALL=$HOME/.deno" >> $GITHUB_ENV
-          echo "export PATH=$HOME/.deno/bin:\$PATH" >> $GITHUB_ENV
+          echo "DENO_INSTALL=$HOME/.deno" >> $GITHUB_ENV
+          echo "PATH=$HOME/.deno/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Clone Render CLI repository and install dependencies
+      - name: Clone Render CLI repository
         run: |
-          source $GITHUB_ENV
           git clone https://github.com/render-oss/render-cli.git
           cd render-cli
+          source $GITHUB_ENV
           make deps
-
-      - name: Install Render CLI
-        run: |
-          curl -fsSL https://github.com/render-oss/render-cli/releases/latest/download/render-cli-linux-amd64 -o /usr/local/bin/render
-          chmod +x /usr/local/bin/render
-        env:
-          PATH: /usr/local/bin:$PATH
 
       - name: Initialize Render CLI Configuration
         env:
@@ -81,147 +74,5 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
+          source $GITHUB_ENV
           render services deploy ctis256_project --env production --dockerfile ./Dockerfile
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-
-      - name: Check out code (full depth for tags)
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Caching dependencies
-        run: make deps
-
-      - name: Outputting version
-        run: ./_build/write-version.bash gha > version.ts
-
-      - name: Running tests
-        run: make test
-
-      - name: Compiling executable for x86_64-unknown-linux-gnu
-        run: make build-linux-x86_64
-
-      - name: Compiling executable for x86_64-apple-darwin
-        run: make build-macos-x86_64
-
-      - name: Compiling executable for aarch64-apple-darwin
-        run: make build-macos-aarch64
-
-      - name: Compiling executable for x86_64-pc-windows-msvc
-        run: make build-windows-x86_64
-
-      - name: Setting chmod
-        run: chmod +x /tmp/render-*
-
-      - name: Test-running Linux artifact just to be sure...
-        run: /tmp/render-linux-x86_64 version
-
-      - name: Uploading artifacts (all)
-        uses: actions/upload-artifact@v2
-        with:
-          name: render-binaries
-          path: /tmp/render-*
-
-  make-nupkg:
-    runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Create temp directories
-        run: mkdir -p ./tmp/artifacts ./tmp/nupkg
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: render-binaries
-          path: ./tmp/artifacts
-
-      - name: Prep executable
-        run: cp ./tmp/artifacts/render-windows-x86_64.exe ./tmp/nupkg/render.exe
-
-      - name: Copy tools to nupkg
-        run: cp -r ./_build/nupkg/tools ./tmp/nupkg/tools
-
-      - name: Output templated nuspec
-        run: |
-          cat ./_build/nupkg/rendercli.nuspec.template | sed "s/NUSPEC_PACKAGE_VERSION/${GITHUB_REF/refs\/tags\/v/}/g" > ./tmp/nupkg/rendercli.nuspec
-
-      - name: Show templated nuspec
-        run: cat ./tmp/nupkg/rendercli.nuspec
-
-      - name: Enumerating nupkg files
-        run: find ./tmp/nupkg
-
-      - name: Pack nupkg
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: pack ./tmp/nupkg/rendercli.nuspec
-
-      - name: Check for nupkg
-        run: ls . && find ./tmp
-
-      - name: Uploading nupkg
-        uses: actions/upload-artifact@v2
-        with:
-          name: nupkg
-          path: ./rendercli.*.nupkg
-
-  make-release:
-    runs-on: ubuntu-latest
-    needs: [build, make-nupkg]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - run: mkdir -p /tmp/artifacts /tmp/nupkg
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: render-binaries
-          path: /tmp/artifacts
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: nupkg
-          path: /tmp/nupkg
-
-      - name: Do GitHub release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: true
-          files: |
-            /tmp/artifacts/*
-            /tmp/nupkg/*
-            LICENSE
-            README.md
-
-  push-nupkg:
-    runs-on: ubuntu-latest
-    needs: make-release
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: nupkg
-          path: ./tmp/nupkg
-
-      - name: Rename nupkg for action
-        run: cp ./tmp/nupkg/rendercli.${GITHUB_REF/refs\/tags\/v/}.nupkg ./tmp/nupkg/rendercli.nupkg
-
-      - name: Push nupkg to Chocolatey
-        uses: crazy-max/ghaction-chocolatey@v2
-        with:
-          args: push --key ${{ secrets.CHOCOLATEY_APIKEY }} --source https://push.chocolatey.org ./tmp/nupkg/rendercli.nupkg
-
-permissions:
-  contents: write

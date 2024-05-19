@@ -6,6 +6,11 @@ $dbname = getenv('DB_DATABASE') ?: 'test';
 $user = getenv('DB_USERNAME') ?: 'root';
 $pass = getenv('DB_PASSWORD') ?: 'root';
 
+echo "Host: $host<br>";
+echo "Port: $port<br>";
+echo "Database: $dbname<br>";
+echo "User: $user<br>";
+
 $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
 
 try {
