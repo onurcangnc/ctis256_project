@@ -63,6 +63,12 @@ jobs:
           source $GITHUB_ENV
           make deps
 
+      - name: Install Render CLI
+        run: |
+          curl -fsSL https://github.com/render-oss/render-cli/releases/latest/download/render-cli-linux-amd64 -o /usr/local/bin/render
+          chmod +x /usr/local/bin/render
+          echo "export PATH=/usr/local/bin:\$PATH" >> $GITHUB_ENV
+
       - name: Initialize Render CLI Configuration
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
