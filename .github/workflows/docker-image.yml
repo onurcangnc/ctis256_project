@@ -76,8 +76,8 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
-          source $GITHUB_ENV
-          echo "$RENDER_API_KEY" | deno task run config init --api-key
+          mkdir -p ~/.config/render
+          echo "{\"apiKey\": \"$RENDER_API_KEY\"}" > ~/.config/render/config.json
 
       - name: Deploy to Render
         env:
