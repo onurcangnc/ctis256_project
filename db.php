@@ -1,6 +1,6 @@
 <?php
 
-$host = getenv('DB_HOST') ?: 'ctis256_project-db-1';
+$host = getenv('DB_HOST') ?: 'db';
 $port = getenv('DB_PORT') ?: '3306';
 $dbname = getenv('DB_DATABASE') ?: 'test';
 $user = getenv('DB_USERNAME') ?: 'root';
