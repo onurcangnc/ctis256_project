@@ -54,32 +54,39 @@ jobs:
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
           docker images ${{ secrets.DOCKER_HUB_USERNAME }}/ctis256_project:latest
 
-      # Step 7: Install Deno
-      - name: Install Deno
-        run: |
-          curl -fsSL https://deno.land/install.sh | sh
-          echo "export DENO_INSTALL=\"$HOME/.deno\"" >> $GITHUB_ENV
-          echo "export PATH=\"$HOME/.deno/bin:\$PATH\"" >> $GITHUB_ENV
-
-      # Step 8: Install Git (ensure git is available)
+      # Step 7: Install Git (ensure git is available)
       - name: Install Git
         run: sudo apt-get install -y git
 
-      # Step 9: Clone the Render CLI repository and install dependencies
+      # Step 8: Install Deno and ensure it's in the PATH
+      - name: Install Deno
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "DENO_INSTALL=$HOME/.deno" >> $GITHUB_ENV
+          echo "PATH=$HOME/.deno/bin:$PATH" >> $GITHUB_ENV
+
+      # Step 9: Source environment variables and verify Deno installation
+      - name: Verify Deno installation
+        run: |
+          source $GITHUB_ENV
+          deno --version
+
+      # Step 10: Clone the Render CLI repository and install dependencies
       - name: Clone Render CLI repository
         run: |
-          source $GITHUB_ENV  # Load Deno environment variables
+          source $GITHUB_ENV
           git clone https://github.com/render-oss/render-cli.git
           cd render-cli
           make deps
 
-      # Step 10: Initialize Render CLI configuration
+      # Step 11: Initialize Render CLI configuration
       - name: Initialize Render CLI Configuration
         run: |
           mkdir -p ~/.config/render
           echo "{\"apiKey\": \"$RENDER_API_KEY\"}" > ~/.config/render/config.json
 
-      # Step 11: Deploy to Render
+      # Step 12: Deploy to Render
       - name: Deploy to Render
         run: |
-          ~/.deno/bin/deno run --allow-read --allow-env --allow-run --allow-net https://deno.land/x/render-cli@latest/cli.ts services deploy ctis256_project --env production --dockerfile ./Dockerfile
+          source $GITHUB_ENV
+          deno run --allow-read --allow-env --allow-run --allow-net https://deno.land/x/render-cli@latest/cli.ts services deploy ctis256_project --env production --dockerfile ./Dockerfile
