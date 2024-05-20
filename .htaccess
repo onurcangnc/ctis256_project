@@ -1,21 +1,34 @@
-
 RewriteEngine On
+
+# HTTPS'ye Yönlendirme
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# HSTS Başlığı
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 
+# Güvenlik Başlıkları
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "DENY"
+Header set X-XSS-Protection "1; mode=block"
+
+# Alan Adı Yönlendirmesi (eski alan adından yenisine)
+RewriteCond %{HTTP_HOST} ^ctis256project.infinityfreeapp.com$ [NC]
+RewriteRule ^(.*)$ https://ctis256project.com.tr/$1 [L,R=301]
+
+# Sorgu Parametresiyle Yeniden Yönlendirme
 RewriteCond %{QUERY_STRING} ^i=1$ [NC]
 RewriteRule ^$ https://ctis256project.com.tr/login.php? [R=301,L]
 
-
+# Ana Sayfa Yönlendirmesi
 DirectoryIndex login.php
 
-
+# Özel Hata Sayfaları
 ErrorDocument 403 https://errors.infinityfree.net/errors/403/
 ErrorDocument 404 https://errors.infinityfree.net/errors/404/
 ErrorDocument 500 https://errors.infinityfree.net/errors/500/
 
-
-RewriteCond %{HTTP_HOST} ^ctis256project.infinityfreeapp.com$ [NC]
+# Alt Alan Adı ve Kök Dizin Yönlendirmesi (yeni alan adı için)
+RewriteCond %{HTTP_HOST} ^ctis256project.com.tr$ [NC]
 RewriteCond %{REQUEST_URI} ^/$
 RewriteRule ^$ /login.php [L,R=302]
