@@ -4,40 +4,50 @@ require 'db.php';
 
 if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     header("Location: login.php");
-    exit;
+    exit();
 }
 
 if ($_SESSION['is_admin'] != 0) {
     header("Location: addproduct.php");
-    exit;
+    exit();
 }
 
-if (isset($_GET['remove'])) {//ürün silmek için id alınır ve eğer idler eşleşiyo
+if (isset($_GET['remove'])) {
     $product_id = $_GET['remove'];
-    if (isset($_SESSION['cart'][$product_id])) { //eğer hrefteki product_id tanımlıysa verileri siliyor o product'ın
-        unset($_SESSION['cart'][$product_id]); 
+    if (isset($_SESSION['cart'][$product_id])) {
+        unset($_SESSION['cart'][$product_id]);
     }
-    header("Location: shoppingcart.php"); 
+    header("Location: shoppingcart.php");
     exit();
 }
 
-//ödeme işlemine geçince çıkmak ve cartı boşaltmak
 if (isset($_POST['proceed_to_pay'])) {
-    $_SESSION['cart'] = []; 
-    header("Location: payment.php"); 
+    // Store cart details and total amount in session
+    $_SESSION['cart_details'] = [];
+    foreach ($_SESSION['cart'] as $productId => $details) {
+        $stmt = $pdo->prepare("SELECT * FROM product WHERE id = :id AND expire > CURDATE()");
+        $stmt->execute(['id' => $productId]);
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($product) {
+            $_SESSION['cart_details'][$productId] = [
+                'title' => $product['title'],
+                'price' => $product['price'],
+                'quantity' => $details['quantity']
+            ];
+        }
+    }
+    header("Location: payment.php");
     exit();
 }
-
 
 if (isset($_POST['add_to_cart'])) {
-    $productId = $_POST['product_id']; //formdan gelen idyi product_id'ye atamak
+    $productId = $_POST['product_id'];
     if (!isset($_SESSION['cart'][$productId])) {
         $_SESSION['cart'][$productId] = ['quantity' => 0];
     }
-    $_SESSION['cart'][$productId]['quantity']++;//dynamic olarak artım için
+    $_SESSION['cart'][$productId]['quantity']++;
 }
 
-// //
 if (isset($_POST['update_cart'])) {
     foreach ($_POST['quantities'] as $productId => $quantity) {
         if ($quantity == 0) {
@@ -48,7 +58,6 @@ if (isset($_POST['update_cart'])) {
     }
 }
 
-//logout olunca sepeti temizlemek için
 if (isset($_POST['clear_cart'])) {
     $_SESSION['cart'] = [];
 }
@@ -62,7 +71,6 @@ if (!empty($_SESSION['cart'])) {
     $stmt = $pdo->query($sql);
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Toplam tutarı hesapla
     foreach ($products as $product) {
         $totalAmount += $product['price'] * $_SESSION['cart'][$product['id']]['quantity'];
     }

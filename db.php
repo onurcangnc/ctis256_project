@@ -1,9 +1,9 @@
 <?php
 
-$dsn = "mysql:host=sql109.infinityfree.com;port=3306;dbname=if0_36583751_test;charset=utf8mb4";
-$user = "if0_36583751";
-$pass = "Alvin2210";
-$dbname = 'if0_36583751_test';
+$dsn = "mysql:host=localhost;port=3306;dbname=ctisproj_1;charset=utf8mb4";
+$user = "ctisproj";
+$pass = "b20Pp7U0xv";
+$dbname = 'ctisproj_1';
 
 try {
     $pdo = new PDO($dsn, $user, $pass);
