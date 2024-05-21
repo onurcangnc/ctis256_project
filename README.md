@@ -1,3 +1,5 @@
+# [Demo link of the project](https://ctis256project.rf.gd)
+
 # 📊 CTIS 256 Introduction to Backend Development PROJECT
 
 **🗓️ Spring 2024**
@@ -63,8 +65,6 @@
 ---
 
 ## Application Overview
-
-### **Website:** [ctis256project.com.tr](http://ctis256project.com.tr)
 
 ### ⚙️ Project Setup and Installation
 1. Clone the repository.
