@@ -7,22 +7,24 @@ if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     exit;
 }
 
-// Check if the user is an admin
+if ($_SESSION['is_admin'] != 1) {
+    header("Location: product.php");
+    exit;
+}
+
 $userEmail = $_SESSION['user_email'];
 $isAdmin = ($userEmail === 'admin1@gmail.com');
 
-// Query to fetch expired products
-$query = $isAdmin
-    ? "SELECT * FROM product WHERE expire < DATE_ADD(CURDATE(), INTERVAL 10 DAY)" // Admin sees all expired products
-    : "SELECT * FROM product WHERE market_email = ? AND expire < DATE_ADD(CURDATE(), INTERVAL 10 DAY)"; // Market sees only their expired products
+$query = $isAdmin ? "SELECT * FROM product WHERE expire <= CURDATE()"//admin hepsini görür
+:"SELECT * FROM product WHERE market_email = ? AND expire <= CURDATE()";// Market kendi ürünlerini görür admin değilse
 
 $stmt = $pdo->prepare($query);
 if ($isAdmin) {
     $stmt->execute();
 } else {
-    $stmt->execute([$userEmail]);
+    $stmt->execute([$userEmail]);//user mail ile eşlemek ? yerine koymak
 }
-$expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);//bütün satırları almak expired olan
 ?>
 
 <!DOCTYPE html>
@@ -109,7 +111,7 @@ $expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="row text-center mb-5">
             <div class="col-lg-7 mx-auto">
                 <h1 class="display-4">Expired Products</h1>
-                <p class="lead mb-0">Here are the products that are nearing their expiration dates</p>
+                <p class="lead mb-0">Here are the expired products</p>
             </div>
         </div>
 
@@ -122,7 +124,7 @@ $expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <div class="media-body">
                                     <h5 class="mt-0 font-weight-bold mb-2"><?= htmlspecialchars($product['title']) ?></h5>
                                     <div class="d-flex align-items-center justify-content-between mt-1">
-                                        <h6 class="font-weight-bold my-2">$<?= number_format($product['price'], 2) ?></h6>
+                                        <h6 class="font-weight-bold my-2">$<?= number_format($product['price'], 2) //ondalık sayı?></h6>
                                     </div>
                                 </div>
                                 <img src="uploads/<?= htmlspecialchars($product['img']) ?>"

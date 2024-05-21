@@ -1,14 +1,7 @@
 <?php
-// Başlamış olan session'ı sürdürmek için session'ı başlatma
 session_start();
-
-// Tüm session verilerini temizleme
-session_unset();
-
-// Session'ı yok etme
-session_destroy();
-
-// Kullanıcıyı giriş sayfasına yönlendirme
+session_unset();//verileri temizleme
+session_destroy();//sesiondan çıkma veya yok etmk
 header("Location: login.php");
 exit();
 ?>

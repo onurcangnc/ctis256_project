@@ -12,8 +12,6 @@
 </head>
 
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 session_start();
 require 'db.php';
@@ -42,23 +40,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // user önceden kayıtlı mı
     $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $userCheck->execute([$email]);
-    if ($userCheck->fetch()) {
+    if ($userCheck->fetch()) { //sonuç dönüyor mu kontrol dönüyorsa hata
         $errors[] = "This user already exists!";
     }
 
-    // dosya yükleme işlemleri yap
-    if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) {
-        $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-        $fileInfo = pathinfo($_FILES['logo']['name']);
-        $fileExt = $fileInfo['extension'];
-        if (in_array($fileExt, $allowedTypes)) {
-            $newFilename = uniqid('', true) . '.' . $fileExt;
-            $destination = 'uploads/' . $newFilename;
-            if (!move_uploaded_file($_FILES['logo']['tmp_name'], $destination)) {
-                $errors[] = "Failed to upload file.";
-            } else {
-                $logo = $destination;
-            }
+    if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) { //name logo kısmına resim yüklenmiş mi ve dosya yüklenirken hata oluşmuş mu
+        $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];//güvenlik için kontrol yapılıyor dosya typeları
+        $fileInfo = pathinfo($_FILES['logo']['name']); //pathinfo fonksiyonu ile path'ini almak
+        $fileExt = $fileInfo['extension'];//dosyanın uzantıısnı almak
+        if (in_array($fileExt, $allowedTypes)) {//ext kabul mü 
+            $newFilename = uniqid('', true) . '.' . $fileExt; //benzersiz isim mesala 123.jpg
+            $destination = 'uploads/' . $newFilename; //buradaki uploadun içine yüklemek
+            if (!move_uploaded_file($_FILES['logo']['tmp_name'], $destination)) { //dosyayı taşımak
+              $errors[] = "Failed to upload file."; 
+          } else {
+              $logo = $destination; 
+          }
         } else {
             $errors[] = "Invalid file type.";
         }
@@ -70,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "INSERT INTO users (name, email, city, district, address, password, logo, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
         $stmt = $pdo->prepare($sql);
         if (!$stmt->execute([$name, $email, $city, $district, $address, $password_hash, $logo])) {
-            $errors[] = "Error: Could not execute the SQL statement. " . implode(" ", $pdo->errorInfo());
+          $errors[] = "Error: Could not execute the SQL statement.";
         } else {
             header("Location: login.php");
             exit;

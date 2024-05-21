@@ -1,18 +1,20 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 session_start();
 require 'db.php';
 
 if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
-    // Kullanıcıyı login sayfasına yönlendir
     header("Location: login.php");
-    exit;  // Sonrasında scriptin geri kalanını çalıştırmamak için exit kullan
+    exit; 
 }
 
-$userEmail = $_SESSION['user_email'] ?? null;
-$isAdmin = ($userEmail === 'admin1@gmail.com');
-$selectedProductId = $_GET['product_id'] ?? null;
+if ($_SESSION['is_admin'] != 1) {
+    header("Location: product.php");
+    exit;
+}
+
+$userEmail = $_SESSION['user_email'];
+$isAdmin = ($userEmail === 'admin1@gmail.com');//bütün productları görmek için admin sadece görebilir
+$selectedProductId = $_GET['product_id'] ?? null;//linkten product_id'yi çekme işlemlri
 $productData = [];
 
 if ($selectedProductId) {
@@ -28,19 +30,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $price = $_POST['price'] ?? '';
     $discounted_price = $_POST['discounted_price'] ?? '';
 
-    if (isset($_POST['update_product'])) {
-        if ($isAdmin || $productData['market_email'] === $userEmail) {
+    if (isset($_POST['update_product'])) { //update butonuna basılırsa
+        if ($isAdmin || $productData['market_email'] === $userEmail) {//admin ise veya market user ise
             $updateStmt = $pdo->prepare("UPDATE product SET title = ?, expire = ?, description = ?, price = ?, discounted_price = ? WHERE id = ?");
             $success = $updateStmt->execute([$title, $expire, $description, $price, $discounted_price, $selectedProductId]);
             if ($success) {
                 echo "<div class='alert alert-success'>Product updated successfully.</div>";
             } else {
-                echo "<div class='alert alert-danger'>Error updating product: " . implode(" ", $updateStmt->errorInfo()) . "</div>";
+                echo "<div class='alert alert-danger'>Error updating product.</div>";
             }
         } else {
             echo "<div class='alert alert-danger'>You do not have permission to update this product.</div>";
         }
-    } elseif (isset($_POST['delete_product'])) {
+    } elseif (isset($_POST['delete_product'])) { //delete butonuna basılırsa
         if ($isAdmin || $productData['market_email'] === $userEmail) {
             $deleteStmt = $pdo->prepare("DELETE FROM product WHERE id = ?");
             $deleted = $deleteStmt->execute([$selectedProductId]);
@@ -57,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Fetch products depending on the user type
+//User type ne ise ona göre product gösterimi
 $sql = $isAdmin ? "SELECT id, title FROM product" : "SELECT id, title FROM product WHERE market_email = ?";
 $stmt = $pdo->prepare($sql);
 $isAdmin ? $stmt->execute() : $stmt->execute([$userEmail]);

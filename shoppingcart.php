@@ -7,31 +7,37 @@ if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     exit;
 }
 
-if (isset($_GET['remove'])) {
+if ($_SESSION['is_admin'] != 0) {
+    header("Location: addproduct.php");
+    exit;
+}
+
+if (isset($_GET['remove'])) {//ürün silmek için id alınır ve eğer idler eşleşiyo
     $product_id = $_GET['remove'];
-    if (isset($_SESSION['cart'][$product_id])) {
+    if (isset($_SESSION['cart'][$product_id])) { //eğer hrefteki product_id tanımlıysa verileri siliyor o product'ın
         unset($_SESSION['cart'][$product_id]); 
     }
     header("Location: shoppingcart.php"); 
     exit();
 }
 
+//ödeme işlemine geçince çıkmak ve cartı boşaltmak
 if (isset($_POST['proceed_to_pay'])) {
     $_SESSION['cart'] = []; 
     header("Location: payment.php"); 
     exit();
 }
 
-// Handle adding products to the cart
+
 if (isset($_POST['add_to_cart'])) {
-    $productId = $_POST['product_id'];
+    $productId = $_POST['product_id']; //formdan gelen idyi product_id'ye atamak
     if (!isset($_SESSION['cart'][$productId])) {
         $_SESSION['cart'][$productId] = ['quantity' => 0];
     }
-    $_SESSION['cart'][$productId]['quantity']++;
+    $_SESSION['cart'][$productId]['quantity']++;//dynamic olarak artım için
 }
 
-// Handle updating quantities
+// //
 if (isset($_POST['update_cart'])) {
     foreach ($_POST['quantities'] as $productId => $quantity) {
         if ($quantity == 0) {
@@ -42,7 +48,7 @@ if (isset($_POST['update_cart'])) {
     }
 }
 
-// Handle clearing the cart
+//logout olunca sepeti temizlemek için
 if (isset($_POST['clear_cart'])) {
     $_SESSION['cart'] = [];
 }
@@ -50,10 +56,10 @@ if (isset($_POST['clear_cart'])) {
 $products = [];
 $totalAmount = 0;
 if (!empty($_SESSION['cart'])) {
-    $placeholders = implode(',', array_fill(0, count($_SESSION['cart']), '?'));
-    $sql = "SELECT * FROM product WHERE id IN ($placeholders) AND expire > CURDATE()";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array_keys($_SESSION['cart']));
+    $productIds = array_keys($_SESSION['cart']);
+    $idList = implode(',', $productIds);
+    $sql = "SELECT * FROM product WHERE id IN ($idList) AND expire > CURDATE()";
+    $stmt = $pdo->query($sql);
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Toplam tutarı hesapla
@@ -92,9 +98,6 @@ if (!empty($_SESSION['cart'])) {
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="shoppingcart.php">Shopping cart</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="addproductai.php">AI Assistant</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="logout.php">Log Out</a>

@@ -4,24 +4,28 @@ require 'db.php';
 
 if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     header("Location: login.php");
-    exit; 
+    exit;
 }
 
-$marketsQuery = $pdo->prepare("SELECT name, email FROM users WHERE is_admin = 1 AND email NOT IN ('admin1@gmail.com', 'market1@gmail.com')");
+if ($_SESSION['is_admin'] != 0) {
+    header("Location: addproduct.php");
+    exit;
+}
+
+//market göstermek için
+$marketsQuery = $pdo->prepare("SELECT name, email, logo FROM users WHERE is_admin = 1 AND email NOT IN ('admin1@gmail.com', 'market1@gmail.com', 'adminn@gmail.com')");
 $marketsQuery->execute();
 $markets = $marketsQuery->fetchAll(PDO::FETCH_ASSOC);
 
-$selectedMarketEmail = $_GET['market_email'] ?? null;
-$marketLogo = null;
-$marketName = "Grocery";  // Default market name
+$selectedMarketEmail = $_GET['market_email'] ?? null; //market_emaili linkten çeker
+$marketName = "Grocery";  //Default ad
 
 if ($selectedMarketEmail) {
-    $marketQuery = $pdo->prepare("SELECT name, logo FROM users WHERE email = :email AND is_admin = 1");
-    $marketQuery->execute(['email' => $selectedMarketEmail]);
+    $marketQuery = $pdo->prepare("SELECT name FROM users WHERE email = ? AND is_admin = 1"); //mail ile eşleşme tuttuğunda isim değişimi için
+    $marketQuery->execute([$selectedMarketEmail]);
     $market = $marketQuery->fetch(PDO::FETCH_ASSOC);
     if ($market) {
-        $marketLogo = $market['logo'];
-        $marketName = $market['name']; 
+        $marketName = $market['name']; //navbar'da market ismi gözükür
     }
 }
 
@@ -29,64 +33,56 @@ if (isset($_POST['add_to_cart'])) {
     $product_id = $_POST['product_id'];
     $quantity = $_POST['quantity'] ?? 1;
 
-    if (!isset($_SESSION['shopping_cart'])) {
+    if (!isset($_SESSION['shopping_cart'])) { //sepet daha önce hiç oluşmamışsa session başlatmak
         $_SESSION['shopping_cart'] = [];
     }
 
-    if (isset($_SESSION['shopping_cart'][$product_id])) {
-        $_SESSION['shopping_cart'][$product_id]['quantity'] += $quantity;
+    if (isset($_SESSION['shopping_cart'][$product_id])) { //ürün varsa
+        $_SESSION['shopping_cart'][$product_id]['quantity'] += $quantity; //ürün varsa sayıyı artır
     } else {
-        $_SESSION['shopping_cart'][$product_id] = ['id' => $product_id, 'quantity' => $quantity];
+        $_SESSION['shopping_cart'][$product_id] = ['id' => $product_id, 'quantity' => $quantity]; // yoksa ürün ekleme
     }
 }
 
-$itemsPerPage = 4;
-$page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-$offset = ($page - 1) * $itemsPerPage;
-$searchKeyword = $_GET['search'] ?? '';
+$itemsPerPage = 4; //sayfada gösterilen ürün sayısı
+$page = isset($_GET['page']) ? (int) $_GET['page'] : 1; //tam sayıya çevirme sayfa numarasını eğer page tanımlı değilse default 1
+$offset = ($page - 1) * $itemsPerPage; //2. sayfa ise mesela (2-1) * 4 = 4. indexli ürün ile başladığını ifade ediyor
+$searchKeyword = $_GET['search'] ?? ''; //aratılan string alınır
 $marketEmail = $_GET['market_email'] ?? '';
 $minPrice = $_GET['min_price'] ?? 0;
 $maxPrice = $_GET['max_price'] ?? 1000;
-$productType = $_GET['product_type'] ?? '';
+$productType = $_GET['product_type'] ?? ''; //ürün çeşidi (varsa) yoksa boş string
 
-// Prepare SQL 
-$searchQueryPart = $searchKeyword ? " AND (title LIKE :searchKeyword OR description LIKE :searchKeyword)" : "";
-if ($marketEmail) {
-    $totalSql = "SELECT COUNT(*) FROM product WHERE market_email = :marketEmail AND price BETWEEN :minPrice AND :maxPrice AND (type LIKE :productType) AND expire > CURDATE() $searchQueryPart";
-    $sql = "SELECT * FROM product WHERE market_email = :marketEmail AND price BETWEEN :minPrice AND :maxPrice AND (type LIKE :productType) AND expire > CURDATE() $searchQueryPart ORDER BY id ASC LIMIT :offset, :itemsPerPage";
-} else {
-    $totalSql = "SELECT COUNT(*) FROM product WHERE price BETWEEN :minPrice AND :maxPrice AND (type LIKE :productType) AND expire > CURDATE() $searchQueryPart";
-    $sql = "SELECT * FROM product WHERE price BETWEEN :minPrice AND :maxPrice AND (type LIKE :productType) AND expire > CURDATE() $searchQueryPart ORDER BY id ASC LIMIT :offset, :itemsPerPage";
-}
+// Prepare SQL
+$searchQueryPart = $searchKeyword ? " AND (title LIKE :searchKeyword OR description LIKE :searchKeyword)" : ""; //title ve desc search keyword ile eşleşmesine bakılır
+$marketEmailPart = $marketEmail ? " AND market_email = :marketEmail" : ""; //market mail varsa üründe hangi market olduğu alınır yoksa bütün ürünler göster
+$whereC = "WHERE price BETWEEN :minPrice AND :maxPrice AND type LIKE :productType AND expire > CURDATE() $searchQueryPart $marketEmailPart"; //min ile max arası olan ve expire date geçmemiş ürünler
+$limitC = "ORDER BY id ASC LIMIT $offset, $itemsPerPage"; //alfabeye göre sıralama ve sayfayı limitleme 4 products at max
 
-$totalCountStmt = $pdo->prepare($totalSql);
+$totalSql = "SELECT COUNT(*) FROM product $whereC"; //toplam ürün sayısı
+$sql = "SELECT * FROM product $whereC $limitC"; //bütün ürünleri döndürmek gerekli şarları sağlayan
+
+// Prepare and execute toplam sayı
+$totalCountStmt = $pdo->prepare($totalSql); //hazırlama
 $totalCountStmt->bindValue(':minPrice', $minPrice);
 $totalCountStmt->bindValue(':maxPrice', $maxPrice);
-$totalCountStmt->bindValue(':productType', '%' . $productType . '%');
-if ($searchKeyword) {
-    $totalCountStmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
-}
-if ($marketEmail) {
-    $totalCountStmt->bindValue(':marketEmail', $marketEmail);
-}
+$totalCountStmt->bindValue(':productType', '%' . $productType . '%'); //içeriyor mu ona bakıyor
+if ($searchKeyword) $totalCountStmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
+if ($marketEmail) $totalCountStmt->bindValue(':marketEmail', $marketEmail);
 $totalCountStmt->execute();
-$totalProducts = $totalCountStmt->fetchColumn();
+$totalProducts = $totalCountStmt->fetchColumn(); //dönen değeri alıyor
 
+// Prepare genel product yapısı
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':minPrice', $minPrice);
 $stmt->bindValue(':maxPrice', $maxPrice);
 $stmt->bindValue(':productType', '%' . $productType . '%');
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->bindValue(':itemsPerPage', $itemsPerPage, PDO::PARAM_INT);
-if ($searchKeyword) {
-    $stmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
-}
-if ($marketEmail) {
-    $stmt->bindValue(':marketEmail', $marketEmail);
-}
+if ($searchKeyword) $stmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
+if ($marketEmail) $stmt->bindValue(':marketEmail', $marketEmail);
 $stmt->execute();
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -104,17 +100,6 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             list-style-type: none;
         }
 
-        html,
-        body {
-            overflow: hidden;
-        }
-
-        @media (max-width: 1200px) {
-            html,
-            body {
-                overflow: auto;
-            }
-        }
 
         .single-product {
             transition: transform 0.3s, background-color 0.3s;
@@ -158,11 +143,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
-                <?php if ($marketLogo): ?>
-                    <?php echo $marketName; ?>
-                <?php else: ?>
-                    <?php echo $marketName; ?>
-                <?php endif; ?>
+                <?php
+                echo $marketName;
+                ?>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -177,18 +160,20 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <a class="nav-link" href="membership.php">Membership Information</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="shoppingcart.php">Shopping cart</a>
+                        <a class="nav-link" href="shoppingcart.php">Shopping Cart</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="addproductai.php">AI Assistant</a>
-                    </li>          
+                        <a class="nav-link" href="addproductai.php">Add Product AI</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="logout.php">Log Out</a>
                     </li>
                 </ul>
                 <form class="d-flex" action="product.php" method="GET">
-                    <input type="hidden" name="market_email" value="<?php echo htmlspecialchars($selectedMarketEmail ?? ''); ?>">
-                    <input class="form-control me-2" type="search" name="search" placeholder="Search" aria-label="Search" value="<?php echo htmlspecialchars($searchKeyword); ?>">
+                    <input type="hidden" name="market_email"
+                        value="<?php echo htmlspecialchars($selectedMarketEmail ?? ''); //Market içi mi değil mi kontrol?>">
+                    <input class="form-control me-2" type="search" name="search" placeholder="Search"
+                        aria-label="Search" value="<?php echo htmlspecialchars($searchKeyword); ?>">
                     <button class="btn btn-outline-success" type="submit">Search</button>
                 </form>
                 <ul class="navbar-nav">
@@ -198,10 +183,10 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             Select Market
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                            <?php foreach ($markets as $market): ?>
+                            <?php foreach ($markets as $m): ?>
                                 <li><a class="dropdown-item"
-                                        href="product.php?market_email=<?php echo urlencode($market['email']); ?>">
-                                        <?php echo htmlspecialchars($market['name']); ?></a>
+                                        href="product.php?market_email=<?php echo htmlspecialchars($m['email']); ?>">
+                                        <?php echo htmlspecialchars($m['name']); ?></a>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
@@ -218,7 +203,8 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="row mb-4">
                 <div class="col-md-12">
                     <form class="d-flex flex-wrap justify-content-center" action="product.php" method="GET">
-                        <input type="hidden" name="market_email" value="<?php echo htmlspecialchars($selectedMarketEmail ?? ''); ?>">
+                        <input type="hidden" name="market_email"
+                            value="<?php echo htmlspecialchars($selectedMarketEmail ?? ''); ?>">
                         <div class="form-group me-2 mb-2">
                             <input class="form-control" type="number" name="min_price" placeholder="Min Price"
                                 value="<?php echo htmlspecialchars($minPrice); ?>" min="0">
@@ -230,14 +216,19 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="form-group me-2 mb-2">
                             <select class="form-control" name="product_type">
                                 <option value="">All Types</option>
-                                <option value="Fruit" <?php echo $productType == 'Fruit' ? 'selected' : ''; ?>>Fruit</option>
-                                <option value="Vegetable" <?php echo $productType == 'Vegetable' ? 'selected' : ''; ?>>Vegetable</option>
+                                <option value="Fruit" <?php echo $productType == 'Fruit' ? 'selected' : ''; ?>>Fruit
+                                </option>
+                                <option value="Vegetable" <?php echo $productType == 'Vegetable' ? 'selected' : ''; ?>>
+                                    Vegetable</option>
                                 <option value="Nut" <?php echo $productType == 'Nut' ? 'selected' : ''; ?>>Nut</option>
-                                <option value="Dairy" <?php echo $productType == 'Dairy' ? 'selected' : ''; ?>>Dairy</option>
+                                <option value="Dairy" <?php echo $productType == 'Dairy' ? 'selected' : ''; ?>>Dairy
+                                </option>
                                 <option value="Meat" <?php echo $productType == 'Meat' ? 'selected' : ''; ?>>Meat</option>
-                                <option value="Grain" <?php echo $productType == 'Grain' ? 'selected' : ''; ?>>Grain</option>
-                                <option value="Beverage" <?php echo $productType == 'Beverage' ? 'selected' : ''; ?>>Beverage</option>
-                                <!-- Diğer türler burada listelenebilir -->
+                                <option value="Grain" <?php echo $productType == 'Grain' ? 'selected' : ''; ?>>Grain
+                                </option>
+                                <option value="Beverage" <?php echo $productType == 'Beverage' ? 'selected' : ''; ?>>
+                                    Beverage</option>
+                                <!-- -->
                             </select>
                         </div>
                         <div class="form-group mb-2">
@@ -258,7 +249,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <div class="row">
                 <?php
-                foreach ($products as $product) {
+                foreach ($products as $product) {//ürünler yazdırılıyor bu sayede
                     echo '
                     <div class="col-md-6 col-lg-4 col-xl-3">
                         <div class="single-product">
@@ -275,7 +266,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <p class="product-description">' . htmlspecialchars(substr($product['description'], 0, 120)) . '...</p>
                                 <h4 class="product-old-price">$' . number_format($product['price'], 2) . '</h4>
                                 <h4 class="product-price">$' . number_format($product['discounted_price'], 2) . '</h4>
-                                <p class="product-expire">Expires on: ' . date('Y-m-d', strtotime($product['expire'])) . '</p>
+                                <p class="product-expire">Expires on: ' . htmlspecialchars($product['expire']) . '</p>
                             </div>
                         </div>
                     </div>';
@@ -286,11 +277,13 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <ul class="pagination justify-content-center">
                     <?php
                     $totalPages = ceil($totalProducts / $itemsPerPage);
-                    if ($totalPages >= 10){
+                    if ($totalPages >= 10) {
                         $totalPages = 10;
                     }
                     for ($i = 1; $i <= $totalPages; $i++) {
-                        echo '<li class="page-item ' . ($page === $i ? 'active' : '') . '"><a class="page-link" href="product.php?page=' . $i . '&market_email=' . urlencode($selectedMarketEmail ?? '') . '&min_price=' . urlencode((string)$minPrice) . '&max_price=' . urlencode((string)$maxPrice) . '&product_type=' . urlencode($productType) . '&search=' . urlencode($searchKeyword) . '">' . $i . '</a></li>';
+                        echo '<li class="page-item ' . ($page === $i ? 'active' : '') . '">
+                        <a class="page-link" href="product.php?page=' . $i . '&market_email=' . urlencode($selectedMarketEmail ?? '') . '&min_price=' . urlencode((string) $minPrice) . '&max_price=' . urlencode((string) $maxPrice) . '&product_type=' . urlencode($productType) . '&search=' . urlencode($searchKeyword) . '">' . $i . '</a>
+                        </li>';
                     }
                     ?>
                 </ul>
@@ -299,7 +292,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </section>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function () { //MDBootstrap dropdown kodu
             var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
             var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
                 return new mdb.Dropdown(dropdownToggleEl)

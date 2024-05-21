@@ -46,14 +46,16 @@
 
 <body>
     <?php
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-
     session_start();
     require 'db.php';
 
     if (!isset($_SESSION['user_email'])) {
         header("Location: login.php");
+        exit;
+    }
+
+    if ($_SESSION['is_admin'] != 1) {
+        header("Location: product.php");
         exit;
     }
 
@@ -95,16 +97,12 @@
         echo '<p class="text-danger">User information not found.</p>';
         exit;
     }
-    if ($user) {
+    else{
         ?>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="addproduct.php">
-                    <?php if (isset($_SESSION['user_logo']) && !empty($_SESSION['user_logo'])): ?>
-                        <img src="<?php echo htmlspecialchars($_SESSION['user_logo']); ?>" alt="Market Logo">
-                    <?php else: ?>
-                        Grocery
-                    <?php endif; ?>
+                    Grocery
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -170,7 +168,7 @@
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary">Update Information</button>
                                             <button type="submit" name="delete" class="btn btn-danger"
-                                                onclick="return confirm('Are you sure you want to delete your account? This cannot be undone.');">Delete
+                                                onclick="return confirm('Are you sure you want to delete your account?');">Delete
                                                 Account</button>
                                         </div>
                                     </form>
@@ -183,9 +181,7 @@
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
         <?php
-    } else {
-        echo '<p class="text-danger">User information not found.</p>';
-    }
+    } 
     ?>
 </body>
 

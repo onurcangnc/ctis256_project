@@ -1,34 +1,28 @@
 RewriteEngine On
 
-# HTTPS'ye Yönlendirme
+# HTTP'den HTTPS'ye Yönlendirme
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteCond %{HTTPS} off
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTP:CF-Visitor} !{"scheme":"https"}
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# HSTS Başlığı
-Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+# Sorgu Dizgisindeki 'i' Parametresini Temizleme
+RewriteCond %{QUERY_STRING} ^(.*)i=[^&]+(.*)$ [NC]
+RewriteRule ^(.*)$ /$1?%1%2 [R=301,L]
+
+# Ana Dizin Yönlendirme
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ /login.php [L,R=301]
+
+# Belirli Dosya Türlerine İzin Verme
+<FilesMatch "\.(css|js|jpg|jpeg|png|gif|ico)$">
+    Header set Access-Control-Allow-Origin "*"
+</FilesMatch>
 
 # Güvenlik Başlıkları
 Header set X-Content-Type-Options "nosniff"
-Header set X-Frame-Options "DENY"
+Header always append X-Frame-Options DENY
 Header set X-XSS-Protection "1; mode=block"
+# Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://maxcdn.bootstrapcdn.com; style-src 'self' https://maxcdn.bootstrapcdn.com"
+Header set Referrer-Policy "no-referrer"
 
-# Alan Adı Yönlendirmesi (eski alan adından yenisine)
-RewriteCond %{HTTP_HOST} ^ctis256project.infinityfreeapp.com$ [NC]
-RewriteRule ^(.*)$ https://ctis256project.com.tr/$1 [L,R=301]
-
-# Sorgu Parametresiyle Yeniden Yönlendirme
-RewriteCond %{QUERY_STRING} ^i=1$ [NC]
-RewriteRule ^$ https://ctis256project.com.tr/login.php? [R=301,L]
-
-# Ana Sayfa Yönlendirmesi
-DirectoryIndex login.php
-
-# Özel Hata Sayfaları
-ErrorDocument 403 https://errors.infinityfree.net/errors/403/
-ErrorDocument 404 https://errors.infinityfree.net/errors/404/
-ErrorDocument 500 https://errors.infinityfree.net/errors/500/
-
-# Alt Alan Adı ve Kök Dizin Yönlendirmesi (yeni alan adı için)
-RewriteCond %{HTTP_HOST} ^ctis256project.com.tr$ [NC]
-RewriteCond %{REQUEST_URI} ^/$
-RewriteRule ^$ /login.php [L,R=302]

@@ -10,7 +10,12 @@ if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     exit; 
 }
 
-$title = $expire = $img = $description = $price = $type='';
+if ($_SESSION['is_admin'] != 1) {
+    header("Location: product.php");
+    exit;
+}
+
+$title = $expire = $img = $description = $price = $type = '';
 $errors = [];
 $discounted_price = 0;
 $productAdded = false;  // To track if the product was successfully added
@@ -21,7 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $img = $_FILES['img']['name'] ?? '';
     $description = $_POST['description'] ?? '';
     $price = $_POST['price'] ?? '';
-    $type= $_POST['type'] ?? '';
+    $type = $_POST['type'] ?? '';
     $market_email = $_SESSION['user_email']; // Ensure this is set correctly after login
 
     if (empty($title) || empty($expire) || empty($img) || empty($description) || empty($price) || empty($type)) {
@@ -54,21 +59,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if ($stmt->rowCount() > 0) {
                 $errors[] = "This product already exists!";
             } else {
-                $target_dir = "uploads/";
-                $target_file = $target_dir . basename($_FILES["img"]["name"]);
-                if (move_uploaded_file($_FILES["img"]["tmp_name"], $target_file)) {
-                    // Save only the file name, not the path
-                    $sql = "INSERT INTO product (title, expire, img, description, price,type, discounted_price, market_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                    if ($stmt = $pdo->prepare($sql)) {
-                        if ($stmt->execute([$title, $expire, basename($img), $description, $price,$type, $discounted_price, $market_email])) {
-                            $productAdded = true;
-                            $title = $expire = $img = $description = $price = $type= '';
-                        } else {
-                            $errors[] = "Error adding product: " . implode(" ", $pdo->errorInfo());
+                // Dosya uzantısını kontrol et
+                $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
+                $fileInfo = pathinfo($_FILES['img']['name']);
+                $fileExt = $fileInfo['extension'];
+                if (in_array($fileExt, $allowedTypes)) {
+                    $target_dir = "uploads/";
+                    $target_file = $target_dir . basename($_FILES["img"]["name"]);
+                    if (move_uploaded_file($_FILES["img"]["tmp_name"], $target_file)) {
+                        // Save only the file name, not the path
+                        $sql = "INSERT INTO product (title, expire, img, description, price, type, discounted_price, market_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        if ($stmt = $pdo->prepare($sql)) {
+                            if ($stmt->execute([$title, $expire, basename($img), $description, $price, $type, $discounted_price, $market_email])) {
+                                $productAdded = true;
+                                $title = $expire = $img = $description = $price = $type = '';
+                            } else {
+                                $errors[] = "Error adding product: " . implode(" ", $pdo->errorInfo());
+                            }
                         }
+                    } else {
+                        $errors[] = "Error uploading file.";
                     }
                 } else {
-                    $errors[] = "Error uploading file.";
+                    $errors[] = "Invalid file type. Only JPG, JPEG, PNG, and GIF files are allowed.";
                 }
             }
         }

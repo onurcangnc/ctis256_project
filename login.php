@@ -1,10 +1,19 @@
-<?php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+  <link href="login.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
 
-session_start();
+<?php
 unset($_SESSION['verification_code']);
 unset($_SESSION['verification_sent']);
-
-// aksi takdirde kullanıcı her login.php sayfasını yenilediğinde yeni bir CSRF token oluşturulmaz ve mail gelmez.
+session_start();
+// aksi takdirde kullanıcı her login.php sayfasını yenilediğinde yeni bir CSRF belirteci oluşturulmaz ve mail gelmez.
 
 require 'db.php';
 require 'csrf.php';
@@ -29,7 +38,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($user && password_verify($password, $user['password'])) {
                     $_SESSION['user_email'] = $email;
                     $_SESSION['user_logo'] = $user['logo'];
-                    $_SESSION['is_admin'] = $user['is_admin']; // is_admin değerini sessiona ekle
+                    $_SESSION['is_admin'] = $user['is_admin']; // is_admin değerini sessiona eklemek
+                    $_SESSION['role'] = $user['role']; // role değerini sessiona ekle
                     header("Location: verify.php");
                     exit();
                 } else {
@@ -51,17 +61,6 @@ if (!empty($errors)) {
     }
 }
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-  <link href="login.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
 
 <body>
   <section class="vh-100">

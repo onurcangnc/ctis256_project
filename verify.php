@@ -1,5 +1,4 @@
 <?php
-ob_start();
 session_unset(); // Tüm oturum değişkenlerini sil
 session_start(); // Yeni oturum başlat
 
@@ -21,7 +20,9 @@ $verification_message_type = 'danger'; // Default message type is danger (red)
 function sendVerificationCode($email) {
     $random_integer = mt_rand(100000, 999999);
     $_SESSION['verification_code'] = (string)$random_integer;
+    ob_start();
     Mail::send($email, 'Email Verification Code', $random_integer, 'User Verification');
+    ob_end_clean(); // Discard the buffer contents
 }
 
 // Eğer verification_code oturum değişkeni yoksa yeni bir doğrulama kodu gönder
@@ -44,11 +45,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verification_code'])) 
             unset($_SESSION['verification_code']);
             if ($_SESSION['is_admin'] == 1) {
                 header("Location: addproduct.php");
-                exit();
             } else {
                 header("Location: product.php");
-                exit();
             }
+            exit();
         } else {
             $verification_message = "Invalid verification code.";
         }
@@ -67,7 +67,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['resend_code'])) {
         $verification_message = "Invalid CSRF token.";
     }
 }
-ob_end_flush();
 ?>
 
 <!DOCTYPE html>

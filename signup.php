@@ -1,15 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="signup.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
 <?php
+
 session_start();
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-
 require 'db.php'; 
 
 $errors = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $name = $_POST['name'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] == "POST") {//form gönderildiğinde çalışır
+  $name = $_POST['name'] ?? ''; //verileri almak postaki name attribute ile
   $email = $_POST['email'] ?? '';
   $city = $_POST['city'] ?? '';
   $district = $_POST['district'] ?? '';
@@ -17,34 +25,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   $password = $_POST['password'] ?? '';
   $confirm_password = $_POST['confirm_password'] ?? '';
 
-  if ($password !== $confirm_password) {
+  if ($password !== $confirm_password) { //şifreler işleniyor mu kontrol etmesi
     $errors[] = "Passwords do not match!";
   }
 
   if (empty($name) || empty($email) || empty($city) || empty($district) || empty($address) || empty($password) || empty($confirm_password)) {
-    $errors[] = "All fields are required!";
+    $errors[] = "All fields are required!"; //boş mu değil mi veriler kontrol boşsa hata mesajı
   }
 
 
-  $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-  $userCheck->execute([$email]);
-  if ($userCheck->fetch()) {
+  $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?"); //users
+  $userCheck->execute([$email]);//? kısmıyla bağlanıyor userCheck'teki eğer varsa mail eşleşmesi user allready exist demek oluyor
+  if ($userCheck->fetch()) {//eşleşen row var mı kontrol varsa hata
     $errors[] = "This user already exists!";
   }
+
   if (empty($errors)) {
-    $password_hash = password_hash($password, PASSWORD_DEFAULT); //
-    $sql = "INSERT INTO users (name, email, city, district, address, password, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0)";
-    if ($stmt = $pdo->prepare($sql)) {
-      if ($stmt->execute([$name, $email, $city, $district, $address, $password_hash])) { //
+    $password_hash = password_hash($password, PASSWORD_DEFAULT); //hash fonksiyonuyla yazılan şifre hashleniyor
+    $sql = "INSERT INTO users (name, email, city, district, address, password, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0)";// admin = 0 çünkü bu bi customer 
+    if ($stmt = $pdo->prepare($sql)) {//hazırlık
+      if ($stmt->execute([$name, $email, $city, $district, $address, $password_hash])) { //çalıştırmak direk sql ? ile yerine geçiyor direk veriler
         header("Location: login.php");
         exit;
       } else {
-        $errors[] = "Error: Could not execute the SQL statement. " . implode(" ", $pdo->errorInfo()); //
+        $errors[] = "Error: Could not execute the SQL statement.";
       }
     }
   }
 
-  $_SESSION['form_errors'] = $errors; 
+  $_SESSION['form_errors'] = $errors; //form geri yüklendiğinde de hatalar gösterilsin diye global değişken de saklama formu sticky
   $_SESSION['form_data'] = $_POST; 
 }
 
@@ -57,18 +66,6 @@ if (!empty($errors)) {
 }
 ?>
 
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="signup.css">
-  <link rel="stylesheet" href="styles.css">
-</head>
 
 <body>
   <section class="custom-size" class="vh-10" style="background-color: #eee;">
