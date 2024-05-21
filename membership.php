@@ -127,6 +127,9 @@
                             <a class="nav-link" href="shoppingcart.php">Shopping Cart</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="addproductai.php">AI Assistant</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="logout.php">Log Out</a>
                         </li>
                     </ul>

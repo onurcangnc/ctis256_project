@@ -105,7 +105,10 @@ if (!empty($_SESSION['cart'])) {
                         <a class="nav-link" href="membership.php">Membership Information</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="shoppingcart.php">Shopping cart</a>
+                        <a class="nav-link" href="shoppingcart.php">Shopping Cart</a>
+                    </li>
+                    <li>
+                        <a class="nav-link" href="addproductai.php">AI Assistant</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="logout.php">Log Out</a>
