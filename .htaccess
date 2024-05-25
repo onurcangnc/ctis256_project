@@ -1,0 +1,78 @@
+# Rewrite Engine'i etkinleştir
+RewriteEngine On
+
+# HTTPS yönlendirmesi (isteğe bağlı, eğer siteniz HTTPS kullanıyorsa)
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# HSTS (HTTP Strict Transport Security)
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+# Kök URL'yi login.php'ye yönlendir ve URL'de login.php göstermeden yönlendir
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ /login.php [L]
+
+# login.php uzantısını gizle
+RewriteRule ^login.php$ - [L]
+
+# Diğer yönlendirmeler ve kurallar (isteğe bağlı)
+# Örneğin, admin paneline erişimi korumak için
+RewriteRule ^admin$ /admin/dashboard.php [L]
+
+# Güvenlik önlemleri
+
+# XSS koruması
+Header set X-XSS-Protection "1; mode=block"
+
+# MIME tipi taklit koruması
+Header set X-Content-Type-Options "nosniff"
+
+# Gelişmiş Referrer-Policy ayarı
+Header set Referrer-Policy "same-origin"
+
+# Clickjacking koruması
+Header always set X-Frame-Options "SAMEORIGIN"
+
+# Directory listing'i devre dışı bırakma
+Options -Indexes
+
+# Common Exploits koruması
+RewriteCond %{QUERY_STRING} (\|%3E) [NC,OR]
+RewriteCond %{QUERY_STRING} (\<|%3C) [NC,OR]
+RewriteCond %{QUERY_STRING} (\\|\.\.\|`|%60) [NC,OR]
+RewriteCond %{QUERY_STRING} (\=\\|\+\|%2B|%3D) [NC,OR]
+RewriteCond %{QUERY_STRING} (\.\./|~|%7E) [NC]
+RewriteRule ^(.*)$ - [F,L]
+
+# Hotlink koruması (isteğe bağlı)
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^http(s)?://(www\.)?ctis256project.net.tr [NC]
+RewriteRule \.(jpg|jpeg|png|gif)$ - [F,NC]
+
+# Rate Limiting (isteğe bağlı)
+<IfModule mod_ratelimit.c>
+  SetEnvIf Request_URI "^/api/" API
+  SetEnvIf Request_URI "^/login.php$" LOGIN
+  <Location "/api">
+    SetEnv rate-limit 1
+  </Location>
+  <Location "/login.php">
+    SetEnv rate-limit 1
+  </Location>
+  <IfModule mod_setenvif.c>
+    SetEnvIf Request_URI "^/login.php$" rate-limit
+    SetEnvIf rate-limit 1 rate-limit
+  </IfModule>
+</IfModule>
+
+# Bot Engelleme (isteğe bağlı)
+<IfModule mod_rewrite.c>
+  RewriteCond %{HTTP_USER_AGENT} ^.*(AhrefsBot|MJ12bot|SemrushBot).*$ [NC]
+  RewriteRule .* - [F,L]
+</IfModule>
+
+# İçerik Koruma (isteğe bağlı)
+<IfModule mod_headers.c>
+  Header set Copy-Protect "1"
+  Header set Access-Control-Allow-Origin "*"
+</IfModule>

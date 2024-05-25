@@ -5,14 +5,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
   <link rel="stylesheet" href="signup.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <?php
 
+header("Access-Control-Allow-Origin: https://ctis256project.net.tr"); // Belirli bir domain ile sınırlandırıldı
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true");
+header("Vary: Origin");
+
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com;");
+header("Referrer-Policy: no-referrer");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: SAMEORIGIN");
+header("X-XSS-Protection: 1; mode=block");
+
 session_start();
+
 require 'db.php'; 
 
 $errors = [];
@@ -32,7 +45,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {//form gönderildiğinde çalışır
   if (empty($name) || empty($email) || empty($city) || empty($district) || empty($address) || empty($password) || empty($confirm_password)) {
     $errors[] = "All fields are required!"; //boş mu değil mi veriler kontrol boşsa hata mesajı
   }
-
 
   $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?"); //users
   $userCheck->execute([$email]);//? kısmıyla bağlanıyor userCheck'teki eğer varsa mail eşleşmesi user allready exist demek oluyor
@@ -64,11 +76,22 @@ if (!empty($errors)) {
   }
   echo '</div>';
 }
+
+// Set HttpOnly flag for session cookie
+if (isset($_COOKIE['PHPSESSID'])) {
+  setcookie('PHPSESSID', $_COOKIE['PHPSESSID'], [
+    'expires' => time() + 86400,
+    'path' => '/',
+    'domain' => 'ctis256project.net.tr',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Strict',
+  ]);
+}
 ?>
 
-
 <body>
-  <section class="custom-size" class="vh-10" style="background-color: #eee;">
+  <section class="custom-size vh-100" style="background-color: #eee;">
     <div class="container h-100" id="main">
       <div class="row d-flex justify-content-center align-items-center h-100">
         <div class="col-lg-12 col-xl-11">
@@ -123,7 +146,7 @@ if (!empty($errors)) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-lock fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="password" id="form3Example4c" name="password" class="form-control" required />
+                        <input type="password" id="form3Example4c" name="password" class="form-control" autocomplete="off" required />
                         <label class="form-label" for="form3Example4c">Password</label>
                       </div>
                     </div>
@@ -131,8 +154,7 @@ if (!empty($errors)) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-key fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="password" id="form3Example4cd" name="confirm_password" class="form-control"
-                          required />
+                        <input type="password" id="form3Example4cd" name="confirm_password" class="form-control" autocomplete="off" required />
                         <label class="form-label" for="form3Example4cd">Repeat your password</label>
                       </div>
                     </div>
@@ -168,7 +190,7 @@ if (!empty($errors)) {
       </div>
     </div>
   </section>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
 </body>
 
 </html>
