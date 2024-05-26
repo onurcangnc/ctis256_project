@@ -8,38 +8,50 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="navbar.css">
-    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             min-height: 100vh;
         }
+
         .gradient-custom {
-            background: #f6d365;
-            background: -webkit-linear-gradient(to right bottom, rgba(246, 211, 101, 1), rgba(253, 160, 133, 1));
-            background: linear-gradient(to right bottom, rgba(246, 211, 101, 1), rgba(253, 160, 133, 1));
+            background: #36d1dc;
+            background: -webkit-linear-gradient(to right bottom, #5b86e5, #36d1dc);
+            background: linear-gradient(to right bottom, #5b86e5, #36d1dc);
             color: white;
         }
+
         .card {
             border: none;
             border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         .form-label {
             font-weight: bold;
         }
+
         .navbar-brand img {
             width: 100px;
             height: auto;
         }
+
         .btn-primary {
             background-color: #007bff;
             border: none;
         }
+
         .btn-danger {
             background-color: #dc3545;
             border: none;
         }
-        .btn-danger:hover, .btn-primary:hover {
+
+        .btn-danger:hover,
+        .btn-primary:hover {
             opacity: 0.9;
+        }
+
+        .alert {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -51,11 +63,6 @@
 
     if (!isset($_SESSION['user_email'])) {
         header("Location: login.php");
-        exit;
-    }
-
-    if ($_SESSION['is_admin'] != 1) {
-        header("Location: product.php");
         exit;
     }
 
@@ -96,13 +103,15 @@
     if (!$user) {
         echo '<p class="text-danger">User information not found.</p>';
         exit;
-    }
-    else{
+    } else {
         ?>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container-fluid">
-                <a class="navbar-brand" href="addproduct.php">
-                    Grocery
+                <a class="navbar-brand" href="marketproduct.php">
+                    <?php if (isset($_SESSION['user_logo']) && !empty($_SESSION['user_logo'])): ?>
+                        <img src="<?php echo htmlspecialchars($_SESSION['user_logo']); ?>" alt="Market Logo">
+                    <?php else: echo htmlspecialchars($user['name']);?>
+                    <?php endif; ?>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,13 +120,13 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item active">
+                            <a class="nav-link" href="marketproduct.php">My Products</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="addproduct.php">Add Product<span class="sr-only">(current)</span></a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">Membership Information</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="updateproduct.php">Update Product</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="expired.php">Expired Products</a>
@@ -130,14 +139,16 @@
             </div>
         </nav>
         <div class="container py-5 h-100">
-            <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col col-lg-6 mb-4 mb-lg-0">
+            <div class="row d-flex justify-content-center align-items-center h-100" style="margin-top:80px;">
+                <div class="col-12">
                     <div class="card mb-3">
                         <div class="row g-0">
                             <div class="col-md-4 gradient-custom text-center text-white"
                                 style="border-top-left-radius: .5rem; border-bottom-left-radius: .5rem;">
                                 <img src="img/7511667.png" alt="Avatar" class="img-fluid my-5" style="width: 80px;" />
                                 <h5><b>Name: </b><?php echo htmlspecialchars($user['name']); ?></h5>
+                                <h5><b>City: </b><?php echo htmlspecialchars($user['city']); ?></h5>
+                                <h5><b>District: </b><?php echo htmlspecialchars($user['district']); ?></h5>
                                 <h5><b>Address: </b><?php echo htmlspecialchars($user['address']); ?></h5>
                             </div>
                             <div class="col-md-8">
@@ -181,7 +192,7 @@
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
         <?php
-    } 
+    }
     ?>
 </body>
 

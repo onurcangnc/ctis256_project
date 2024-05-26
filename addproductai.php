@@ -19,74 +19,80 @@ function addProductToCart($product_id, $product_title, $quantity) {
 }
 
 $number_words = [
-    'one' => 1,
-    'a' => 1,
-    'an' => 1,
-    'two' => 2,
-    'three' => 3,
-    'four' => 4,
-    'five' => 5,
-    'six' => 6,
-    'seven' => 7,
-    'eight' => 8,
-    'nine' => 9,
-    'ten' => 10,
-    'eleven' => 11,
-    'twelve' => 12,
-    'thirteen' => 13,
-    'fourteen' => 14,
-    'fifteen' => 15,
-    'sixteen' => 16,
-    'seventeen' => 17,
-    'eighteen' => 18,
-    'nineteen' => 19,
-    'twenty' => 20
+    'one' => 1, 'a' => 1, 'an' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5,
+    'six' => 6, 'seven' => 7, 'eight' => 8, 'nine' => 9, 'ten' => 10, 'eleven' => 11,
+    'twelve' => 12, 'thirteen' => 13, 'fourteen' => 14, 'fifteen' => 15, 'sixteen' => 16,
+    'seventeen' => 17, 'eighteen' => 18, 'nineteen' => 19, 'twenty' => 20
 ];
 
 $product_types = [
     'fruit', 'nut', 'vegetable', 'dairy', 'bakery', 'meat'
 ];
 
+$market_emails = [
+    'migros' => 'migros@gmail.com',
+    'a101' => 'a101@gmail.com',
+    'bim' => 'bim@gmail.com'
+];
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ai_input'])) {
     $ai_input = strtolower($_POST['ai_input']);
     $keywords = [
-        'almond', 'egg', 'cheese', 'yogurt', 'ayran', 'milk', 'butter', 'almond milk', 'cheddar cheese', 'mozzarella cheese', 
-        'banana', 'avocado', 'carrot', 'strawberries', 'blueberries', 'orange', 'pineapple', 'bread', 'corn', 'broccoli', 
-        'tomato', 'pie', 'grapes', 'kiwi', 'cherry', 'lime', 'lemon', 'mango', 'peach', 'watermelon', 'apple', 'beef', 
-        'chicken breast', 'spinach', 'cauliflower', 'salmon', 'tuna', 'pork chops', 'ground beef', 'plum', 'pear', 
-        'cantaloupe', 'lettuce', 'cabbage', 'green beans', 'sweet potato', 'zucchini', 'caramelized onions', 'bagels', 
-        'croissant', 'chocolate chip cookies', 'apple', 'whole wheat bread', 'chocolate chip cookies', 'coke', 'elma'
+        'almond', 'egg', 'cheese', 'yogurt', 'ayran', 'milk', 'butter', 'almond milk',
+        'cheddar cheese', 'mozzarella cheese', 'banana', 'avocado', 'carrot', 'strawberries',
+        'blueberries', 'orange', 'pineapple', 'bread', 'corn', 'broccoli', 'tomato', 'pie',
+        'grapes', 'kiwi', 'cherry', 'lime', 'lemon', 'mango', 'peach', 'watermelon',
+        'beef', 'chicken breast', 'spinach', 'cauliflower', 'salmon', 'tuna', 'pork chops',
+        'ground beef', 'plum', 'pear', 'cantaloupe', 'lettuce', 'cabbage', 'green beans',
+        'sweet potato', 'zucchini', 'caramelized onions', 'bagels', 'croissant', 'chocolate chip cookies',
+        'apple', 'whole wheat bread','coke', 'elma'
     ];
 
-    // Tekil ve çoğul formlarını bir araya getirme
     $keywords = array_merge($keywords, array_map(fn($kw) => $kw . 's', $keywords));
+    
+    $query_params = [];
+
+    // Check if the input requests products from a specific market
+    foreach ($market_emails as $market => $email) {
+        if (stripos($ai_input, $market) !== false) {
+            $query_params['market_email'] = $email;
+            break;
+        }
+    }
+
+    if (preg_match('/under\s+(\d+)/', $ai_input, $matches)) {
+        $query_params['max_price'] = $matches[1];
+    }
+    if (preg_match('/over\s+(\d+)/', $ai_input, $matches)) {
+        $query_params['min_price'] = $matches[1];
+    }
+    if (preg_match('/between\s+(\d+)\s*and\s*(\d+)/', $ai_input, $matches)) {
+        $query_params['min_price'] = $matches[1];
+        $query_params['max_price'] = $matches[2];
+    }
+    foreach ($product_types as $type) {
+        if (stripos($ai_input, $type) !== false) {
+            $query_params['product_type'] = $type;
+            break;
+        }
+    }
+    if (stripos($ai_input, 'cheap') !== false) {
+        $query_params['order'] = 'cheap';
+    }
+    if (stripos($ai_input, 'expensive') !== false) {
+        $query_params['order'] = 'expensive';
+    }
+
+    if (!empty($query_params)) {
+        $query_string = http_build_query($query_params);
+        header("Location: product.php?" . $query_string);
+        exit;
+    }
 
     $products_to_add = [];
-    
-    // Fiyat aralığına göre ürün ekleme işlemi
-    if (preg_match('/under\s+(\d+)/', $ai_input, $matches)) {
-        $price_limit = (float)$matches[1];
-        $stmt = $pdo->prepare("SELECT id, title FROM product WHERE price < ?");
-        $stmt->execute([$price_limit]);
-        $products_to_add = array_merge($products_to_add, $stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
 
-    if (preg_match('/over\s+(\d+)/', $ai_input, $matches)) {
-        $price_limit = (float)$matches[1];
-        $stmt = $pdo->prepare("SELECT id, title FROM product WHERE price > ?");
-        $stmt->execute([$price_limit]);
-        $products_to_add = array_merge($products_to_add, $stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
 
-    if (preg_match('/between\s+(\d+)\s*and\s*(\d+)/', $ai_input, $matches)) {
-        $min_price = (float)$matches[1];
-        $max_price = (float)$matches[2];
-        $stmt = $pdo->prepare("SELECT id, title FROM product WHERE price BETWEEN ? AND ?");
-        $stmt->execute([$min_price, $max_price]);
-        $products_to_add = array_merge($products_to_add, $stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
-
-    // Typelara göre ürün ekleme işlemi
+    // Ürün türü filtreleme
     foreach ($product_types as $type) {
         if (stripos($ai_input, $type) !== false) {
             $stmt = $pdo->prepare("SELECT id, title FROM product WHERE type = ?");
@@ -95,26 +101,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ai_input'])) {
         }
     }
 
-    // Ürün isimleri ve miktarları için regex
-    preg_match_all('/(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)?\s*([a-zA-Z]+)/', $ai_input, $matches, PREG_SET_ORDER);
+    // Kullanıcının girdiği cümlede sayıları ve ürün isimlerini yakalamak için regex kullan
+    preg_match_all('/(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s+([\w\s]+)/i', $ai_input, $matches, PREG_SET_ORDER);
 
     foreach ($matches as $match) {
-        $quantity = isset($match[1]) ? (is_numeric($match[1]) ? (int)$match[1] : $number_words[$match[1]]) : 1;  // Varsayılan miktar 1
-        $product = strtolower(rtrim($match[2], 's'));  // Çoğul isimlerden 's' harfini kaldır
-        
-        // Eğer ürün anahtar kelimelerde varsa, listeye ekle
-        if (in_array($product, $keywords)) {
-            $stmt = $pdo->prepare("SELECT id, title, price FROM product WHERE title LIKE ?");
-            $stmt->execute(["%" . $product . "%"]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $quantity = is_numeric($match[1]) ? (int)$match[1] : (isset($number_words[$match[1]]) ? $number_words[$match[1]] : 1); // Varsayılan olarak 1
+        $product = strtolower(trim($match[2]));
 
-            if ($result) {
-                addProductToCart($result['id'], $result['title'], $quantity);
+        foreach ($keywords as $keyword) {
+            if (stripos($product, $keyword) !== false) {
+                $stmt = $pdo->prepare("SELECT id, title FROM product WHERE title LIKE ?");
+                $stmt->execute(["%" . $keyword . "%"]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($result) {
+                    addProductToCart($result['id'], $result['title'], $quantity);
+                }
             }
         }
     }
 
-    // Fiyat aralığına göre eklenen ürünler
+    // Kullanıcının sadece ürün adı girmesi durumunda varsayılan miktar ile ekleme
+    foreach ($keywords as $keyword) {
+        if (stripos($ai_input, $keyword) !== false && !preg_match('/(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s+' . $keyword . '/i', $ai_input)) {
+            $stmt = $pdo->prepare("SELECT id, title FROM product WHERE title LIKE ?");
+            $stmt->execute(["%" . $keyword . "%"]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($result) {
+                addProductToCart($result['id'], $result['title'], 1); // Varsayılan olarak 1
+            }
+        }
+    }
+
     foreach ($products_to_add as $product) {
         addProductToCart($product['id'], $product['title'], 1);
     }
@@ -123,6 +142,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ai_input'])) {
     exit;
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -136,7 +156,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ai_input'])) {
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
-            background-color: #EEF5FF;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
@@ -154,11 +173,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['ai_input'])) {
         }
 
         .ai-assistant {
-            background-color: #ffffff;
+            background: linear-gradient(to right bottom, #e0f7fa, #f2ebf2);
             padding: 40px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+            max-width: 800px;
             width: 100%;
             text-align: center;
         }

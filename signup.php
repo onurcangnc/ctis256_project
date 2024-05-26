@@ -5,32 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="signup.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <?php
 
-header("Access-Control-Allow-Origin: https://ctis256project.net.tr"); // Belirli bir domain ile sınırlandırıldı
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Access-Control-Allow-Credentials: true");
-header("Vary: Origin");
-
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com;");
-header("Referrer-Policy: no-referrer");
-header("X-Content-Type-Options: nosniff");
-header("X-Frame-Options: SAMEORIGIN");
-header("X-XSS-Protection: 1; mode=block");
-
 session_start();
-
 require 'db.php'; 
 
 $errors = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {//form gönderildiğinde çalışır
-  $name = $_POST['name'] ?? ''; //verileri almak postaki name attribute ile
+$name = $email = $city = $district = $address = $password = $confirm_password = '';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $name = $_POST['name'] ?? ''; 
   $email = $_POST['email'] ?? '';
   $city = $_POST['city'] ?? '';
   $district = $_POST['district'] ?? '';
@@ -38,25 +27,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {//form gönderildiğinde çalışır
   $password = $_POST['password'] ?? '';
   $confirm_password = $_POST['confirm_password'] ?? '';
 
-  if ($password !== $confirm_password) { //şifreler işleniyor mu kontrol etmesi
+  if ($password !== $confirm_password) {
     $errors[] = "Passwords do not match!";
   }
 
   if (empty($name) || empty($email) || empty($city) || empty($district) || empty($address) || empty($password) || empty($confirm_password)) {
-    $errors[] = "All fields are required!"; //boş mu değil mi veriler kontrol boşsa hata mesajı
+    $errors[] = "All fields are required!";
   }
 
-  $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?"); //users
-  $userCheck->execute([$email]);//? kısmıyla bağlanıyor userCheck'teki eğer varsa mail eşleşmesi user allready exist demek oluyor
-  if ($userCheck->fetch()) {//eşleşen row var mı kontrol varsa hata
+  $userCheck = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+  $userCheck->execute([$email]);
+  if ($userCheck->fetch()) {
     $errors[] = "This user already exists!";
   }
 
   if (empty($errors)) {
-    $password_hash = password_hash($password, PASSWORD_DEFAULT); //hash fonksiyonuyla yazılan şifre hashleniyor
-    $sql = "INSERT INTO users (name, email, city, district, address, password, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0)";// admin = 0 çünkü bu bi customer 
-    if ($stmt = $pdo->prepare($sql)) {//hazırlık
-      if ($stmt->execute([$name, $email, $city, $district, $address, $password_hash])) { //çalıştırmak direk sql ? ile yerine geçiyor direk veriler
+    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+    $sql = "INSERT INTO users (name, email, city, district, address, password, is_admin) VALUES (?, ?, ?, ?, ?, ?, 0)";
+    if ($stmt = $pdo->prepare($sql)) {
+      if ($stmt->execute([$name, $email, $city, $district, $address, $password_hash])) {
         header("Location: login.php");
         exit;
       } else {
@@ -65,33 +54,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {//form gönderildiğinde çalışır
     }
   }
 
-  $_SESSION['form_errors'] = $errors; //form geri yüklendiğinde de hatalar gösterilsin diye global değişken de saklama formu sticky
+  $_SESSION['form_errors'] = $errors;
   $_SESSION['form_data'] = $_POST; 
 }
+
+$form_data = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']);
 
 if (!empty($errors)) {
   echo '<div class="alert alert-danger">';
   foreach ($errors as $error) {
-    echo '<p>' . $error . '</p>';
+    echo '<p>' . htmlspecialchars($error) . '</p>';
   }
   echo '</div>';
-}
-
-// Set HttpOnly flag for session cookie
-if (isset($_COOKIE['PHPSESSID'])) {
-  setcookie('PHPSESSID', $_COOKIE['PHPSESSID'], [
-    'expires' => time() + 86400,
-    'path' => '/',
-    'domain' => 'ctis256project.net.tr',
-    'secure' => true,
-    'httponly' => true,
-    'samesite' => 'Strict',
-  ]);
 }
 ?>
 
 <body>
-  <section class="custom-size vh-100" style="background-color: #eee;">
+  <section class="custom-size" class="vh-10" style="background-color: #eee;">
     <div class="container h-100" id="main">
       <div class="row d-flex justify-content-center align-items-center h-100">
         <div class="col-lg-12 col-xl-11">
@@ -106,7 +86,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-user fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="text" id="form3Example1c" name="name" class="form-control" required />
+                        <input type="text" id="form3Example1c" name="name" class="form-control" value="<?php echo htmlspecialchars($form_data['name'] ?? ''); ?>" required />
                         <label class="form-label" for="form3Example1c">Your Full Name</label>
                       </div>
                     </div>
@@ -114,7 +94,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-envelope fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="email" id="form3Example3c" name="email" class="form-control" required />
+                        <input type="email" id="form3Example3c" name="email" class="form-control" value="<?php echo htmlspecialchars($form_data['email'] ?? ''); ?>" required />
                         <label class="form-label" for="form3Example3c">Your Email</label>
                       </div>
                     </div>
@@ -122,7 +102,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-user fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="text" id="cityInput" name="city" class="form-control" required />
+                        <input type="text" id="cityInput" name="city" class="form-control" value="<?php echo htmlspecialchars($form_data['city'] ?? ''); ?>" required />
                         <label class="form-label" for="cityInput">Your City</label>
                       </div>
                     </div>
@@ -130,7 +110,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-user fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="text" id="districtInput" name="district" class="form-control" required />
+                        <input type="text" id="districtInput" name="district" class="form-control" value="<?php echo htmlspecialchars($form_data['district'] ?? ''); ?>" required />
                         <label class="form-label" for="districtInput">Your District</label>
                       </div>
                     </div>
@@ -138,7 +118,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-user fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="text" id="addressInput" name="address" class="form-control" required />
+                        <input type="text" id="addressInput" name="address" class="form-control" value="<?php echo htmlspecialchars($form_data['address'] ?? ''); ?>" required />
                         <label class="form-label" for="addressInput">Your Full Address</label>
                       </div>
                     </div>
@@ -146,7 +126,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-lock fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="password" id="form3Example4c" name="password" class="form-control" autocomplete="off" required />
+                        <input type="password" id="form3Example4c" name="password" class="form-control" required />
                         <label class="form-label" for="form3Example4c">Password</label>
                       </div>
                     </div>
@@ -154,7 +134,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
                     <div class="d-flex flex-row align-items-center mb-4">
                       <i class="fas fa-key fa-lg me-3 fa-fw"></i>
                       <div class="form-outline flex-fill mb-0">
-                        <input type="password" id="form3Example4cd" name="confirm_password" class="form-control" autocomplete="off" required />
+                        <input type="password" id="form3Example4cd" name="confirm_password" class="form-control" required />
                         <label class="form-label" for="form3Example4cd">Repeat your password</label>
                       </div>
                     </div>
@@ -190,7 +170,7 @@ if (isset($_COOKIE['PHPSESSID'])) {
       </div>
     </div>
   </section>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

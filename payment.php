@@ -1,65 +1,10 @@
-<?php
-session_start();
-
-if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
-    header("Location: login.php");
-    exit();
-}
-
-if (!isset($_SESSION['cart_details']) || empty($_SESSION['cart_details'])) {
-    echo "<script>alert('No products in cart. Redirecting to product page.'); window.location.href = 'product.php';</script>";
-    exit();
-}
-
-$totalAmount = 0;
-foreach ($_SESSION['cart_details'] as $details) {
-    $totalAmount += $details['price'] * $details['quantity'];
-}
-
-if (isset($_POST['iban_pay'])) {
-    $iban = $_POST['iban'];
-    $amount = $_POST['amount'];
-
-    if ($amount <= 0) {
-        echo "<script>alert('Entered amount must be greater than zero.'); window.location.href = 'payment.php';</script>";
-        exit();
-    }
-
-    $response = simulatePaymentProcessing($iban, $amount, $totalAmount);
-
-    if ($response['success']) {
-        // Payment successful, clear the cart
-        $_SESSION['cart'] = [];
-        $_SESSION['cart_details'] = [];
-        echo "<script>alert('Payment successful!'); window.location.href = 'product.php';</script>";
-        exit();
-    } else {
-        echo "<script>alert('Payment failed: " . $response['message'] . "'); window.location.href = 'login.php';</script>";
-        exit();
-    }
-}
-
-function simulatePaymentProcessing($iban, $amount, $totalCost) {
-    if ($amount >= $totalCost) {
-        return [
-            'success' => true,
-            'message' => 'Payment processed successfully'
-        ];
-    } else {
-        return [
-            'success' => false,
-            'message' => 'Insufficient amount. Please check your balance.'
-        ];
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment</title>
+    <title>Products</title>
     <link rel="stylesheet" href="product.css">
     <link rel="stylesheet" href="navbar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -71,6 +16,7 @@ function simulatePaymentProcessing($iban, $amount, $totalCost) {
             min-height: 100vh;
             vertical-align: middle;
             display: flex;
+
         }
 
         .card {
@@ -87,6 +33,7 @@ function simulatePaymentProcessing($iban, $amount, $totalCost) {
         .mb-50 {
             margin-bottom: 50px
         }
+
 
         @media(max-width:767px) {
             .card {
@@ -284,24 +231,77 @@ function simulatePaymentProcessing($iban, $amount, $totalCost) {
     </style>
 </head>
 
+<?php
+if (isset($_POST['pay'])) {
+    header("Location: product.php");
+    exit();
+}
+?>
+
 <body>
+
     <div class="card mt-50 mb-50">
         <div class="card-title mx-auto">
-            Payment
+            Settings
         </div>
-        <form action="" method="POST">
-            <span id="card-header">Pay with IBAN:</span>
-            <div class="form-group">
-                <label for="iban">IBAN</label>
-                <input type="text" class="form-control" id="iban" name="iban" placeholder="Enter IBAN" required>
+        <div class="nav">
+            <ul class="mx-auto">
+                <li><a href="#">Account</a></li>
+                <li class="active"><a href="#">Payment</a></li>
+            </ul>
+        </div>
+        <form action="product.php" method="POST">
+            <span id="card-header">Saved cards:</span>
+            <div class="row row-1">
+                <div class="col-2"><img class="img-fluid"
+                        src="https://img.icons8.com/color/48/000000/mastercard-logo.png" /></div>
+                <div class="col-7">
+                    <input type="text" placeholder="**** **** **** 3193">
+                </div>
+                <div class="col-3 d-flex justify-content-center">
+                    <a href="#">Remove card</a>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="amount">Amount</label>
-                <input type="number" class="form-control" id="amount" name="amount" placeholder="Enter amount" required>
+            <div class="row row-1">
+                <div class="col-2"><img class="img-fluid" src="https://img.icons8.com/color/48/000000/visa.png" /></div>
+                <div class="col-7">
+                    <input type="text" placeholder="**** **** **** 4296">
+                </div>
+                <div class="col-3 d-flex justify-content-center">
+                    <a href="#">Remove card</a>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary mt-3" name="iban_pay">Make IBAN Payment</button>
+            <span id="card-header">Add new card:</span>
+            <div class="row-1">
+                <div class="row row-2">
+                    <span id="card-inner">Card holder name</span>
+                </div>
+                <div class="row row-2">
+                    <input type="text" placeholder="Bojan Viner">
+                </div>
+            </div>
+            <div class="row three">
+                <div class="col-7">
+                    <div class="row-1">
+                        <div class="row row-2">
+                            <span id="card-inner">Card number</span>
+                        </div>
+                        <div class="row row-2">
+                            <input type="text" placeholder="5134-5264-4">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <input type="text" placeholder="Exp. date">
+                </div>
+                <div class="col-2">
+                    <input type="text" placeholder="CVV">
+                </div>
+            </div>
+            <button class="btn d-flex mx-auto" name="pay"><b>Make Payment</b></button>
         </form>
     </div>
 </body>
+
 
 </html>

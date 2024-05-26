@@ -7,11 +7,6 @@ if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     exit;
 }
 
-if ($_SESSION['is_admin'] != 1) {
-    header("Location: product.php");
-    exit;
-}
-
 $userEmail = $_SESSION['user_email'];
 $isAdmin = ($userEmail === 'admin1@gmail.com');
 
@@ -73,7 +68,7 @@ $expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);//bütün satırları almak
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="addproduct.php">
+            <a class="navbar-brand" href="marketproduct.php">
                 <?php if (isset($_SESSION['user_logo']) && !empty($_SESSION['user_logo'])): ?>
                     <img style="width: 100px;" src="<?php echo htmlspecialchars($_SESSION['user_logo']); ?>"
                         alt="Market Logo" style="height: 50px;">
@@ -88,13 +83,13 @@ $expiredProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);//bütün satırları almak
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item active">
+                        <a class="nav-link" href="marketproduct.php">My Products</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="addproduct.php">Add Product</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="membershipmarket.php">Membership Information</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="updateproduct.php">Update Product</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Expired Products</a>

@@ -7,25 +7,20 @@ if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
     exit;
 }
 
-if ($_SESSION['is_admin'] != 0) {
-    header("Location: addproduct.php");
-    exit;
-}
-
-//market göstermek için
+// Market list
 $marketsQuery = $pdo->prepare("SELECT name, email, logo FROM users WHERE is_admin = 1 AND email NOT IN ('admin1@gmail.com', 'market1@gmail.com', 'adminn@gmail.com')");
 $marketsQuery->execute();
 $markets = $marketsQuery->fetchAll(PDO::FETCH_ASSOC);
 
-$selectedMarketEmail = $_GET['market_email'] ?? null; //market_emaili linkten çeker
-$marketName = "Grocery";  //Default ad
+$selectedMarketEmail = $_GET['market_email'] ?? null;
+$marketName = "Grocery";
 
 if ($selectedMarketEmail) {
-    $marketQuery = $pdo->prepare("SELECT name FROM users WHERE email = ? AND is_admin = 1"); //mail ile eşleşme tuttuğunda isim değişimi için
+    $marketQuery = $pdo->prepare("SELECT name FROM users WHERE email = ? AND is_admin = 1");
     $marketQuery->execute([$selectedMarketEmail]);
     $market = $marketQuery->fetch(PDO::FETCH_ASSOC);
     if ($market) {
-        $marketName = $market['name']; //navbar'da market ismi gözükür
+        $marketName = $market['name'];
     }
 }
 
@@ -33,46 +28,57 @@ if (isset($_POST['add_to_cart'])) {
     $product_id = $_POST['product_id'];
     $quantity = $_POST['quantity'] ?? 1;
 
-    if (!isset($_SESSION['shopping_cart'])) { //sepet daha önce hiç oluşmamışsa session başlatmak
+    if (!isset($_SESSION['shopping_cart'])) {
         $_SESSION['shopping_cart'] = [];
     }
 
-    if (isset($_SESSION['shopping_cart'][$product_id])) { //ürün varsa
-        $_SESSION['shopping_cart'][$product_id]['quantity'] += $quantity; //ürün varsa sayıyı artır
+    if (isset($_SESSION['shopping_cart'][$product_id])) {
+        $_SESSION['shopping_cart'][$product_id]['quantity'] += $quantity;
     } else {
-        $_SESSION['shopping_cart'][$product_id] = ['id' => $product_id, 'quantity' => $quantity]; // yoksa ürün ekleme
+        $_SESSION['shopping_cart'][$product_id] = ['id' => $product_id, 'quantity' => $quantity];
+    }
+
+    // Update the total_item count in the database
+    $updateItemStmt = $pdo->prepare("UPDATE product SET total_item = total_item - 1 WHERE id = ?");
+    $updateItemStmt->execute([$product_id]);
+
+    // Check if the total_item count is 0 and delete the product if it is
+    $checkItemStmt = $pdo->prepare("SELECT total_item FROM product WHERE id = ?");
+    $checkItemStmt->execute([$product_id]);
+    $totalItem = $checkItemStmt->fetchColumn();
+
+    if ($totalItem <= 0) {
+        $deleteStmt = $pdo->prepare("DELETE FROM product WHERE id = ?");
+        $deleteStmt->execute([$product_id]);
     }
 }
 
-$itemsPerPage = 4; //sayfada gösterilen ürün sayısı
-$page = isset($_GET['page']) ? (int) $_GET['page'] : 1; //tam sayıya çevirme sayfa numarasını eğer page tanımlı değilse default 1
-$offset = ($page - 1) * $itemsPerPage; //2. sayfa ise mesela (2-1) * 4 = 4. indexli ürün ile başladığını ifade ediyor
-$searchKeyword = $_GET['search'] ?? ''; //aratılan string alınır
+$itemsPerPage = 4;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $itemsPerPage;
+$searchKeyword = $_GET['search'] ?? '';
 $marketEmail = $_GET['market_email'] ?? '';
 $minPrice = $_GET['min_price'] ?? 0;
 $maxPrice = $_GET['max_price'] ?? 1000;
-$productType = $_GET['product_type'] ?? ''; //ürün çeşidi (varsa) yoksa boş string
+$productType = $_GET['product_type'] ?? '';
 
-// Prepare SQL
-$searchQueryPart = $searchKeyword ? " AND (title LIKE :searchKeyword OR description LIKE :searchKeyword)" : ""; //title ve desc search keyword ile eşleşmesine bakılır
-$marketEmailPart = $marketEmail ? " AND market_email = :marketEmail" : ""; //market mail varsa üründe hangi market olduğu alınır yoksa bütün ürünler göster
-$whereC = "WHERE price BETWEEN :minPrice AND :maxPrice AND type LIKE :productType AND expire > CURDATE() $searchQueryPart $marketEmailPart"; //min ile max arası olan ve expire date geçmemiş ürünler
-$limitC = "ORDER BY id ASC LIMIT $offset, $itemsPerPage"; //alfabeye göre sıralama ve sayfayı limitleme 4 products at max
+$searchQueryPart = $searchKeyword ? " AND (title LIKE :searchKeyword OR description LIKE :searchKeyword)" : "";
+$marketEmailPart = $marketEmail ? " AND market_email = :marketEmail" : "";
+$whereC = "WHERE discounted_price BETWEEN :minPrice AND :maxPrice AND type LIKE :productType AND expire > CURDATE() $searchQueryPart $marketEmailPart";
+$limitC = "ORDER BY title ASC LIMIT $offset, $itemsPerPage";
 
-$totalSql = "SELECT COUNT(*) FROM product $whereC"; //toplam ürün sayısı
-$sql = "SELECT * FROM product $whereC $limitC"; //bütün ürünleri döndürmek gerekli şarları sağlayan
+$totalSql = "SELECT COUNT(*) FROM product $whereC";
+$sql = "SELECT * FROM product $whereC $limitC";
 
-// Prepare and execute toplam sayı
-$totalCountStmt = $pdo->prepare($totalSql); //hazırlama
+$totalCountStmt = $pdo->prepare($totalSql);
 $totalCountStmt->bindValue(':minPrice', $minPrice);
 $totalCountStmt->bindValue(':maxPrice', $maxPrice);
-$totalCountStmt->bindValue(':productType', '%' . $productType . '%'); //içeriyor mu ona bakıyor
+$totalCountStmt->bindValue(':productType', '%' . $productType . '%');
 if ($searchKeyword) $totalCountStmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
 if ($marketEmail) $totalCountStmt->bindValue(':marketEmail', $marketEmail);
 $totalCountStmt->execute();
-$totalProducts = $totalCountStmt->fetchColumn(); //dönen değeri alıyor
+$totalProducts = $totalCountStmt->fetchColumn();
 
-// Prepare genel product yapısı
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':minPrice', $minPrice);
 $stmt->bindValue(':maxPrice', $maxPrice);
@@ -80,13 +86,11 @@ $stmt->bindValue(':productType', '%' . $productType . '%');
 if ($searchKeyword) $stmt->bindValue(':searchKeyword', '%' . $searchKeyword . '%');
 if ($marketEmail) $stmt->bindValue(':marketEmail', $marketEmail);
 $stmt->execute();
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,11 +100,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .nav-item.dropdown {
-            list-style-type: none;
-        }
-
-
+        
         .single-product {
             transition: transform 0.3s, background-color 0.3s;
         }
@@ -136,6 +136,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
             font-size: 14px;
             color: #555;
         }
+        .product-item{
+            font-size: 12px;
+            color: #555;
+            margin-top: 3px;
+        }
     </style>
 </head>
 
@@ -160,7 +165,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
                         <a class="nav-link" href="membership.php">Membership Information</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="shoppingcart.php">Shopping Cart</a>
+                        <a class="nav-link" href="shoppingcart.php">Shopping cart</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="addproductai.php">AI Assistant</a>
@@ -242,7 +247,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
                 <div class="col-md-8 col-lg-6">
                     <div class="header">
                         <h3>Featured Foods</h3>
-                        <h2>Popular Foods</h2>
+                        <h2>Popular Foods</2>
                     </div>
                 </div>
             </div>
@@ -267,6 +272,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
                                 <h4 class="product-old-price">$' . number_format($product['price'], 2) . '</h4>
                                 <h4 class="product-price">$' . number_format($product['discounted_price'], 2) . '</h4>
                                 <p class="product-expire">Expires on: ' . htmlspecialchars($product['expire']) . '</p>
+                                <p class="product-item">Item Count: ' . htmlspecialchars($product['total_item']) . '</p>
                             </div>
                         </div>
                     </div>';
@@ -301,5 +307,4 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC); //bütün satırları almak
     </script>
 
 </body>
-
 </html>

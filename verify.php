@@ -1,7 +1,9 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_unset(); // Tüm oturum değişkenlerini sil
 session_start(); // Yeni oturum başlat
-
 
 require 'vendor/autoload.php';
 require 'mail.php';
@@ -30,9 +32,7 @@ if (!isset($_SESSION['verification_code'])) {
     sendVerificationCode($email);
     $verification_message = "A verification code has been sent to your email.";
     $verification_message_type = 'success';
-} else {
-    echo "Verification code already set: " . $_SESSION['verification_code'] . "<br>"; // Debugging statement
-}
+} 
 
 // Handle form submission for verification
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verification_code'])) {
@@ -44,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verification_code'])) 
         if ($user_code === $_SESSION['verification_code'] || $user_code === '123456') {
             unset($_SESSION['verification_code']);
             if ($_SESSION['is_admin'] == 1) {
-                header("Location: addproduct.php");
+                header("Location: marketproduct.php");
             } else {
                 header("Location: product.php");
             }
@@ -168,12 +168,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['resend_code'])) {
     <div class="main-container">
         <div class="card">
             <div class="card-header">
-                <h2>Mail Verification</h2>
+                <h2>Email Verification</h2>
             </div>
             <div class="card-body">
                 <form action="" method="post">
                     <div class="verify mb-3">
-                        <label for="verification_code" class="form-label">Mail Verification Code: &#x1F512;</label>
+                        <label for="verification_code" class="form-label">Email Verification Code: &#x1F512;</label>
                         <div class="d-flex">
                             <input type="text" id="verification_code" name="verification_code" class="form-control me-2" required>
                             <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">

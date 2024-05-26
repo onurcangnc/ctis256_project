@@ -3,7 +3,7 @@
 $dsn = "mysql:host=localhost;port=3306;dbname=ctisproj_1;charset=utf8mb4";
 $user = "ctisproj";
 $pass = "b20Pp7U0xv";
-$dbname = 'ctisproj_1';
+$dbname = 'ctisproj';
 
 try {
     $pdo = new PDO($dsn, $user, $pass);

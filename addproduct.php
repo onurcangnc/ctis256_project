@@ -1,33 +1,25 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 session_start();
 require 'db.php';
 
-if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['user_email']) || empty($_SESSION['user_email'])) {//tanımlı mı değil mi boş mu değil mi
+    header("Location: login.php");//dedğilse logine atama
     exit; 
-}
-
-if ($_SESSION['is_admin'] != 1) {
-    header("Location: product.php");
-    exit;
 }
 
 $title = $expire = $img = $description = $price = $type = '';
 $errors = [];
 $discounted_price = 0;
-$productAdded = false;  // To track if the product was successfully added
+$productAdded = false;  
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $title = $_POST['title'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] == "POST") { //butona basınca
+    $title = $_POST['title'] ?? ''; //verileri çekme name kısmından
     $expire = $_POST['expire'] ?? '';
     $img = $_FILES['img']['name'] ?? '';
     $description = $_POST['description'] ?? '';
     $price = $_POST['price'] ?? '';
-    $type = $_POST['type'] ?? '';
-    $market_email = $_SESSION['user_email']; // Ensure this is set correctly after login
+    $type= $_POST['type'] ?? '';
+    $market_email = $_SESSION['user_email'];
 
     if (empty($title) || empty($expire) || empty($img) || empty($description) || empty($price) || empty($type)) {
         $errors[] = "All fields are required!";
@@ -37,8 +29,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($expirationDate < $today) {
             $errors[] = "Expiration date has already passed. Cannot add expired products.";
         } else {
-            $interval = $today->diff($expirationDate);
-            $days = $interval->days;
+            $interval = $today->diff($expirationDate);//farka bakıyor bugünle expire data arasındaki
+            $days = $interval->days;//dayse çevirmek
             $discount_rate = 0;
             if ($days <= 30 && $days > 14) {
                 $discount_rate = 10;
@@ -53,35 +45,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             $discounted_price = $price - ($price * ($discount_rate / 100));
-            $checkSql = "SELECT * FROM product WHERE title = ?";
-            $stmt = $pdo->prepare($checkSql);
-            $stmt->execute([$title]);
-            if ($stmt->rowCount() > 0) {
+            $checkSql = "SELECT * FROM product WHERE title = ?";//title varsa bu isimde eklemesine iizn vermiyor
+            $stmt = $pdo->prepare($checkSql);//hazırlık yapıyor 
+            $stmt->execute([$title]);//? olan yere productı ekliyor title'a göre
+            if ($stmt->fetch()) { // sonuç dönüyor mu kontrol, dönüyorsa hata
                 $errors[] = "This product already exists!";
             } else {
-                // Dosya uzantısını kontrol et
-                $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-                $fileInfo = pathinfo($_FILES['img']['name']);
-                $fileExt = $fileInfo['extension'];
-                if (in_array($fileExt, $allowedTypes)) {
-                    $target_dir = "uploads/";
-                    $target_file = $target_dir . basename($_FILES["img"]["name"]);
-                    if (move_uploaded_file($_FILES["img"]["tmp_name"], $target_file)) {
-                        // Save only the file name, not the path
-                        $sql = "INSERT INTO product (title, expire, img, description, price, type, discounted_price, market_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                        if ($stmt = $pdo->prepare($sql)) {
-                            if ($stmt->execute([$title, $expire, basename($img), $description, $price, $type, $discounted_price, $market_email])) {
-                                $productAdded = true;
-                                $title = $expire = $img = $description = $price = $type = '';
-                            } else {
-                                $errors[] = "Error adding product: " . implode(" ", $pdo->errorInfo());
-                            }
+                $target_dir = "uploads/";
+                $target_file = $target_dir . basename($_FILES["img"]["name"]);//son kısmı dosya adı basename
+                if (move_uploaded_file($_FILES["img"]["tmp_name"], $target_file)) {
+                    $sql = "INSERT INTO product (title, expire, img, description, price,type, discounted_price, market_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    if ($stmt = $pdo->prepare($sql)) {
+                        if ($stmt->execute([$title, $expire, basename($img), $description, $price,$type, $discounted_price, $market_email])) { //? içine atama
+                            $productAdded = true;
+                            $title = $expire = $img = $description = $price = $type= '';
+                        } else {
+                            $errors[] = "Error adding product";
                         }
-                    } else {
-                        $errors[] = "Error uploading file.";
                     }
                 } else {
-                    $errors[] = "Invalid file type. Only JPG, JPEG, PNG, and GIF files are allowed.";
+                    $errors[] = "Error uploading file.";
                 }
             }
         }
@@ -111,7 +94,6 @@ if ($productAdded) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="navbar.css">
-    <link rel="stylesheet" href="styles.css">
     <style>
         .container {
             padding-top: 20px;
@@ -134,7 +116,7 @@ if ($productAdded) {
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid" >
-            <a class="navbar-brand" href="addproduct.php">
+            <a class="navbar-brand" href="marketproduct.php">
                 <?php if (isset($_SESSION['user_logo']) && !empty($_SESSION['user_logo'])): ?>
                     <img style="width: 100px;"src="<?php echo htmlspecialchars($_SESSION['user_logo']); ?>" alt="Market Logo"
                         style="height: 50px;">
@@ -148,14 +130,14 @@ if ($productAdded) {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item active">
+                <li class="nav-item active">
+                        <a class="nav-link" href="marketproduct.php">My Products</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="addproduct.php">Add Product<span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="membershipmarket.php">Membership Information</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="updateproduct.php">Update Product</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="expired.php">Expired Products</a>

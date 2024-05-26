@@ -11,15 +11,15 @@ class Mail {
         try {
             // SMTP Server settings
             $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com'; // GMAIL SMTP Server
+            $mail->Host       = 'mail.ctis256project.net.tr'; // GMAIL SMTP Server
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'ctis256projectsys@gmail.com';
-            $mail->Password   = 'nodx jmbn dibb jbfz'; // Uygulama şifresi
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = 587;
+            $mail->Username   = '_mainaccount@ctis256project.net.tr';
+            $mail->Password   = 'b20Pp7U0xv'; // Uygulama şifresi
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
 
             // Recipients
-            $mail->setFrom('ctis256projectsys@gmail.com', 'System Admin');
+            $mail->setFrom('_mainaccount@ctis256project.net.tr', 'System Admin');
             $mail->addAddress($to, $FullName);
 
             // Content

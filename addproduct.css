@@ -1,15 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap');
 
-body {
-    font-family: "Poppins", sans-serif;
-    color: #444444;
-}
 
-a,
-a:hover {
-    text-decoration: none;
-    color: inherit;
-}
 
 .section-products {
     padding: 80px 0 54px;
