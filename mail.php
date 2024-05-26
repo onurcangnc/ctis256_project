@@ -11,10 +11,10 @@ class Mail {
         try {
             // SMTP Server settings
             $mail->isSMTP();
-            $mail->Host       = 'mail.ctis256project.net.tr'; // GMAIL SMTP Server
+            $mail->Host       = 'mail.ctis256project.net.tr'; // CTIS256PROJECT SMTP Server
             $mail->SMTPAuth   = true;
-            $mail->Username   = '_mainaccount@ctis256project.net.tr';
-            $mail->Password   = 'b20Pp7U0xv'; // Uygulama şifresi
+            $mail->Username   = '';
+            $mail->Password   = ''; // Uygulama şifresi
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             $mail->Port       = 465;
 
